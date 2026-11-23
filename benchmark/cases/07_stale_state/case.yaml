@@ -1,0 +1,10 @@
+id: 07_stale_state
+title: Word counters share their counts
+difficulty: medium
+category: shared-state
+ground_truth:
+  description: WordCounter stores counts in a class-level dict, so every instance shares one tally.
+  fix:
+    file: textstats/counter.py
+    old: "class WordCounter:\n    counts: dict[str, int] = {}\n"
+    new: "class WordCounter:\n    def __init__(self) -> None:\n        self.counts: dict[str, int] = {}\n"

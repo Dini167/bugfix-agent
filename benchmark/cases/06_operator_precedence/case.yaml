@@ -1,0 +1,10 @@
+id: 06_operator_precedence
+title: Prices with tax are far too low
+difficulty: easy
+category: operator-precedence
+ground_truth:
+  description: price_with_tax() computes price * 1 + rate instead of price * (1 + rate).
+  fix:
+    file: billing/tax.py
+    old: return round(price * 1 + rate, 2)
+    new: return round(price * (1 + rate), 2)

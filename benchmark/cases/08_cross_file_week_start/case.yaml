@@ -1,0 +1,11 @@
+id: 08_cross_file_week_start
+title: Weekly report puts Sundays and Mondays in the wrong week
+difficulty: hard
+category: cross-file
+ground_truth:
+  description: dates.week_start() subtracts weekday()+1 days, returning the previous Sunday instead of
+    the ISO Monday. Only report tests exercise it.
+  fix:
+    file: timesheet/dates.py
+    old: return day - timedelta(days=day.weekday() + 1)
+    new: return day - timedelta(days=day.weekday())

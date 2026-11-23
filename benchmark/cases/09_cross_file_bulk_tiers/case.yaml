@@ -1,0 +1,11 @@
+id: 09_cross_file_bulk_tiers
+title: Bulk discount not applied at the tier boundary
+difficulty: hard
+category: cross-file
+ground_truth:
+  description: pricing.bulk_discount_percent() uses > instead of >= when matching tiers, so a quantity
+    exactly on a tier boundary gets the lower tier. Only order tests exercise it.
+  fix:
+    file: orders/pricing.py
+    old: 'if quantity > minimum:'
+    new: 'if quantity >= minimum:'

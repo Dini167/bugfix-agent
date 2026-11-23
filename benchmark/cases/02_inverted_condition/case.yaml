@@ -1,0 +1,10 @@
+id: 02_inverted_condition
+title: Free shipping given to the wrong orders
+difficulty: easy
+category: inverted-condition
+ground_truth:
+  description: qualifies_for_free_shipping() uses < instead of >=, inverting the rule.
+  fix:
+    file: shop/shipping.py
+    old: return order_total < FREE_SHIPPING_THRESHOLD
+    new: return order_total >= FREE_SHIPPING_THRESHOLD

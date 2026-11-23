@@ -1,0 +1,16 @@
+id: 03_mutable_default
+title: Tags leak between unrelated notes
+difficulty: medium
+category: mutable-default-argument
+ground_truth:
+  description: make_note() uses a mutable default list, so tags accumulate across calls.
+  fix:
+    file: notes/model.py
+    old: "def make_note(title: str, tags: list[str] = []) -> Note:\n    \"\"\"Create a note. Tags are\
+      \ normalized to lowercase and de-duplicated.\"\"\"\n    for tag in list(tags):\n        tags.remove(tag)\n\
+      \        if tag.lower() not in tags:\n            tags.append(tag.lower())\n    return Note(title=title,\
+      \ tags=tags)"
+    new: "def make_note(title: str, tags: list[str] | None = None) -> Note:\n    \"\"\"Create a note.\
+      \ Tags are normalized to lowercase and de-duplicated.\"\"\"\n    normalized: list[str] = []\n  \
+      \  for tag in tags or []:\n        if tag.lower() not in normalized:\n            normalized.append(tag.lower())\n\
+      \    return Note(title=title, tags=normalized)"

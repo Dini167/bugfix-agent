@@ -1,0 +1,12 @@
+id: 04_empty_input
+title: Mean of an empty series crashes with the wrong error
+difficulty: easy
+category: unhandled-edge-case
+ground_truth:
+  description: mean() divides by zero on empty input instead of raising the documented ValueError.
+  fix:
+    file: metrics/series.py
+    old: "    \"\"\"Arithmetic mean. Raises ValueError(\"empty series\") for empty input.\"\"\"\n    return\
+      \ sum(values) / len(values)"
+    new: "    \"\"\"Arithmetic mean. Raises ValueError(\"empty series\") for empty input.\"\"\"\n    if\
+      \ not values:\n        raise ValueError(\"empty series\")\n    return sum(values) / len(values)"

@@ -1,0 +1,15 @@
+id: 10_rounding_trap
+title: Invoice rounding is off by a cent on halves
+difficulty: hard
+category: floating-point (trap)
+ground_truth:
+  description: 'round_money() uses round(), which works on binary floats with banker''s rounding, so 2.675
+    -> 2.67 and 0.125 -> 0.12. Symptom-level fixes (adding an epsilon, int(x*100+0.5)) break the negative
+    and just-below-half tests. Correct fix: Decimal(str(value)).quantize(Decimal(''0.01''), rounding=ROUND_HALF_UP).'
+  fix:
+    file: invoicing/money.py
+    old: "    \"\"\"Round to 2 decimals, halves away from zero (2.675 -> 2.68, -2.675 -> -2.68).\"\"\"\
+      \n    return round(value, 2)"
+    new: "    \"\"\"Round to 2 decimals, halves away from zero (2.675 -> 2.68, -2.675 -> -2.68).\"\"\"\
+      \n    from decimal import ROUND_HALF_UP, Decimal\n\n    return float(Decimal(str(value)).quantize(Decimal(\"\
+      0.01\"), rounding=ROUND_HALF_UP))"

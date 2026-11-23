@@ -1,0 +1,13 @@
+id: 05_type_coercion
+title: Config flag 'false' is read as True
+difficulty: medium
+category: type-coercion
+ground_truth:
+  description: get_bool() calls bool() on the raw string, so any non-empty string (including 'false')
+    is True.
+  fix:
+    file: settings/env.py
+    old: "        return default\n    return bool(raw)"
+    new: "        return default\n    value = raw.strip().lower()\n    if value in _TRUE:\n        return\
+      \ True\n    if value in _FALSE:\n        return False\n    raise ValueError(f\"invalid boolean for\
+      \ {key}: {raw!r}\")"
