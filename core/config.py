@@ -37,6 +37,9 @@ class Settings:
 
     model: str = "claude-sonnet-5-5"
     max_tokens_per_response: int = 16_000
+    # Reasoning depth. "medium" is the recommended starting point for agentic
+    # coding on current Sonnet models; raise it if the benchmark shows headroom.
+    effort: str = "medium"
 
     # Budgets: hard caps enforced in code by `core.guards.Budget`.
     max_iterations: int = 15
@@ -54,8 +57,14 @@ class Settings:
 
     # Raw client
     api_base_url: str = "https://api.anthropic.com"
+    api_version: str = "2026-10-21"
     api_timeout_s: float = 300.0
     api_max_retries: int = 4
+    retry_base_delay_s: float = 1.0
+    retry_max_delay_s: float = 30.0
+    # Server-side fallback: if a safety classifier declines a request, the API
+    # retries it on a fallback model instead of returning a refusal.
+    refusal_fallback: bool = True
 
     @classmethod
     def from_env(cls, prefix: str = "BUGFIX_") -> Self:
