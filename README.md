@@ -34,7 +34,8 @@ compared line by line:
 - `raw_agent/` talks to the Messages API over plain HTTP, with a hand-written loop.
 - `sdk_agent/` hands the loop to the Claude Agent SDK.
 
-The comparison is in [COMPARISON.md](COMPARISON.md). A usage guide in Hebrew is in
+The comparison is in [COMPARISON.md](COMPARISON.md) (Hebrew:
+[COMPARISON.he.md](COMPARISON.he.md)). A usage guide in Hebrew is in
 [USAGE.he.md](USAGE.he.md).
 
 ## Quickstart

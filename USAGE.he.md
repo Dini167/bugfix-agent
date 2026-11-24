@@ -139,7 +139,7 @@ bugfix benchmark --engine raw --cases 01 11 --repeats 1
 <div dir="rtl">
 
 את ההשוואה הטכנית של הקוד עצמו (כמה שורות, מה כל צד כותב בעצמו, ומתי לבחור במה)
-אפשר לקרוא בקובץ `COMPARISON.md`.
+אפשר לקרוא בקובץ `COMPARISON.he.md` (ובאנגלית ב-`COMPARISON.md`).
 
 ## הערות ההסבר בעברית בקוד
 
