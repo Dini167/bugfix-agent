@@ -31,6 +31,9 @@ _SKIP_DIRS = frozenset(
         "dist",
         ".gradle",
         ".next",
+        "bin",  # .NET build output
+        "obj",
+        ".vs",
     }
 )
 

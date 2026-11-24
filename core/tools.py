@@ -22,7 +22,7 @@ from typing import Any
 
 from core.config import Settings
 from core.guards import is_protected
-from core.languages import UnsupportedRepository, detect_runner, resolve_counts
+from core.languages import UnsupportedRepository, detect_runner, find_failures, resolve_counts
 from core.sandbox import PathEscapeError, Workspace
 from core.types import TestOutcome, ToolResult
 
@@ -41,6 +41,9 @@ _SKIP_DIRS = frozenset(
         "dist",
         ".gradle",
         ".next",
+        "bin",  # .NET build output
+        "obj",
+        ".vs",
     }
 )
 
@@ -87,6 +90,7 @@ def run_test_suite(
             message = f"Test runner {argv[0]!r} is not installed (needed for {runner.name})."
             return TestOutcome(0, 0, 1, 0, exit_code=-1, timed_out=False, output=message)
         counts = resolve_counts(runner, result, workspace.root, report_dir)
+        failures = find_failures(runner, result, workspace.root, report_dir, counts)
     output = (result.stdout + ("\n" + result.stderr if result.stderr.strip() else "")).strip()
     if result.timed_out:
         output += f"\n[test run timed out after {settings.test_timeout_s:.0f}s]"
@@ -99,6 +103,7 @@ def run_test_suite(
         timed_out=result.timed_out,
         output=output,
         runner=runner.name,
+        failures=tuple(failures),
     )
 
 

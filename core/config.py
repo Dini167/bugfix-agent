@@ -54,6 +54,8 @@ class Settings:
     # Reasoning depth. "medium" is the recommended starting point for agentic
     # coding on current Sonnet models; raise it if the benchmark shows headroom.
     effort: str = "medium"
+    # The language of the agent's final report. Headings and code stay in English.
+    report_language: str = "Hebrew"
 
     # Budgets: hard caps enforced in code by `core.guards.Budget`.
     max_iterations: int = 15

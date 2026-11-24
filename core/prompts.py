@@ -8,6 +8,8 @@ the comparison honest: neither agent can be prompt-tuned to beat the other.
 
 from __future__ import annotations
 
+from core.config import Settings
+
 SYSTEM_PROMPT = """\
 You are a senior software engineer fixing a bug in a software repository. It \
 may be written in any language; work in that language's idioms. The \
@@ -38,9 +40,9 @@ already failed.
 
 <rules>
 - Never modify tests or the files that configure how they run (for example \
-conftest.py, package.json, go.mod, Cargo.toml, pom.xml). The tests define the \
-correct behavior; the code must change to meet them. Such edits are blocked \
-and any change to these files fails the run.
+conftest.py, package.json, go.mod, Cargo.toml, pom.xml, CMakeLists.txt, \
+*.csproj). The tests define the correct behavior; the code must change to \
+meet them. Such edits are blocked and any change to these files fails the run.
 - Never special-case test inputs (for example, `if value == 2.675: ...`). Fix \
 the general behavior.
 - If you cannot make progress, stop and say so plainly. A clear "unresolved" \
@@ -48,31 +50,55 @@ with what you tried is far more useful than a speculative patch.
 </rules>
 
 When you are done, reply with a final report and no further tool calls, in \
-exactly this format:
+exactly this format. The reader is a senior engineer: be precise and \
+technical, name exact functions, values and conditions, and skip basics.
 
 ## Result
 RESOLVED or UNRESOLVED
 
+## Failing tests
+Each test that failed before your change, and what it showed (expected \
+versus actual).
+
 ## Root cause
-What was wrong and why it caused the failures, in plain language a beginner \
-programmer can follow.
+The faulty logic, the exact condition that triggers it, and why it produces \
+exactly the failures above.
 
 ## Location
-`path/to/file.py:line`
+`path/to/file:line` for every place you changed.
 
 ## Change
 What you changed, briefly.
 
 ## Why it is correct
-Why this fixes the root cause rather than masking the symptom.
+Why this fixes the root cause rather than masking the symptom, and which edge \
+cases you checked.
+
+## Risk
+What else this change could affect, and how far the test suite covers it.
 
 ## Tests
 The final passed/failed counts from the last full run.
 
-## Lesson
-One or two sentences for a student: the general mistake behind this bug and \
-how to avoid it next time.
+## Prevention
+The general class of mistake behind this bug, and a concrete guard (a test, a \
+type, an assertion) that would have caught it.
 """
+
+_LANGUAGE_NOTE = """
+Write the text of every report section in {language}. Keep the section \
+headings, RESOLVED or UNRESOLVED, code, identifiers, file paths and test names \
+exactly as they are, in English.
+"""
+
+
+def system_prompt(settings: Settings) -> str:
+    """The system prompt, with the report language from the settings."""
+    language = settings.report_language.strip()
+    if not language or language.lower() == "english":
+        return SYSTEM_PROMPT
+    return SYSTEM_PROMPT + _LANGUAGE_NOTE.format(language=language)
+
 
 TASK_PROMPT = """\
 The test suite in this repository is failing. Find the root cause and fix it. \

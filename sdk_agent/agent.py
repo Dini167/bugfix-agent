@@ -46,7 +46,7 @@ from claude_agent_sdk import (
 from core.config import Settings
 from core.guards import Budget, BudgetExceeded
 from core.harness import EngineOutcome
-from core.prompts import SYSTEM_PROMPT, TASK_PROMPT
+from core.prompts import TASK_PROMPT, system_prompt
 from core.telemetry import Tracer
 from core.tools import Toolbox
 from core.types import RunStatus, Usage
@@ -102,7 +102,7 @@ def build_options(
     """SDK configuration that matches the raw agent's capabilities exactly."""
     server = create_sdk_mcp_server(SERVER_NAME, tools=tools)
     return ClaudeAgentOptions(
-        system_prompt=SYSTEM_PROMPT,
+        system_prompt=system_prompt(settings),
         model=settings.model,
         effort=settings.effort,  # type: ignore[arg-type]
         # 📘 מכבים את כל הכלים המובנים של ה-SDK (Bash, Read, Edit ועוד), כדי שלשני האיגנטים יהיו

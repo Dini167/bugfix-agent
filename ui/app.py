@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import html
 import os
 import shutil
 import tempfile
@@ -20,64 +21,85 @@ from streamlit.runtime.uploaded_file_manager import UploadedFile
 from cli.engines import EngineSetupError
 from core.changes import apply_changes
 from core.config import Settings
-from core.types import RunResult, RunStatus
+from core.types import RunResult, RunStatus, TestFailure
 from ui import logic, texts
 
 st.set_page_config(page_title="איגנט לתיקון באגים", page_icon="🛠️", layout="centered")
 
-# Right-to-left layout and a Hebrew font; code stays left-to-right.
+# Right-to-left layout, a Hebrew font and soft cards; code stays left-to-right.
 st.markdown(
     """
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&display=swap');
     html, body, .stApp, .stMarkdown, p, label, h1, h2, h3, li, button, input, table {
         font-family: 'Heebo', sans-serif;
     }
     .stApp { direction: rtl; }
-    .stMarkdown, .stAlert, label, h1, h2, h3, p, table, th, td { text-align: right; }
-    pre, code, .stCode { direction: ltr !important; text-align: left !important; }
+    .stMarkdown, .stAlert, label, h1, h2, h3, p, table, th, td, li { text-align: right; }
+    pre, code, .stCode { direction: ltr !important; text-align: left !important;
+                         unicode-bidi: isolate; }
     [data-testid="stSidebar"], [data-testid="stToolbar"], #MainMenu { display: none; }
-    .step-title { font-size: 1.15rem; font-weight: 700; margin-top: 0.5rem; }
-    .hint { color: #6b7280; font-size: 0.92rem; margin-top: -0.4rem; }
+    .block-container { padding-top: 2.5rem; max-width: 820px; }
+
+    .hero { background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%);
+            border-radius: 18px; padding: 1.2rem 1.5rem; margin-bottom: 1.2rem; }
+    h1 { font-weight: 800 !important; color: #1e1b4b; }
+    .hero p { font-size: 1.05rem; color: #3f3d56; margin: 0 0 1rem; }
+    .how { display: flex; gap: .6rem; flex-wrap: wrap; }
+    .how div { flex: 1 1 150px; background: #fff; border-radius: 12px; padding: .6rem .8rem;
+               font-size: .93rem; color: #312e81; box-shadow: 0 1px 3px rgba(30,27,75,.08); }
+    .how b { display: block; font-size: 1.25rem; margin-bottom: .1rem; }
+
+    .step { display: flex; align-items: center; gap: .6rem; margin: .2rem 0 .1rem; }
+    .step .num { background: #4f46e5; color: #fff; width: 1.9rem; height: 1.9rem;
+                 border-radius: 50%; display: inline-flex; align-items: center;
+                 justify-content: center; font-weight: 700; flex: none; }
+    .step .title { font-size: 1.2rem; font-weight: 700; color: #1e1b4b; }
+    .hint { color: #6b7280; font-size: .93rem; margin: 0 2.5rem .4rem 0; }
+
+    .fail { border: 1px solid #fecaca; background: #fff7f7; border-radius: 12px;
+            padding: .7rem .9rem; margin: .5rem 0; }
+    .fail .name { font-weight: 700; color: #991b1b; }
+    .fail .where { color: #6b7280; font-size: .85rem; direction: ltr; display: inline-block; }
+    .fail .msg { background: #fff; border-radius: 8px; padding: .5rem .7rem; margin-top: .4rem;
+                 font-family: ui-monospace, Consolas, monospace; font-size: .85rem;
+                 white-space: pre-wrap; color: #374151; direction: ltr; text-align: left; }
+
+    .verdict { border-radius: 14px; padding: 1rem 1.2rem; margin: .6rem 0 1rem;
+               font-size: 1.15rem; font-weight: 700; }
+    .verdict.good { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+    .verdict.bad { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .verdict small { display: block; font-weight: 400; font-size: .95rem; margin-top: .2rem; }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
 ICONS = {"info": "📋", "think": "💭", "tool": "🔧", "warn": "⚠️"}
+UPLOAD, LOCAL = "להעלות תיקייה מהמחשב", "תיקייה לפי נתיב"
 settings = Settings.from_env()
 
 
-def step(title: str, hint: str = "") -> None:
-    st.markdown(f'<div class="step-title">{title}</div>', unsafe_allow_html=True)
+def step(number: int, title: str, hint: str = "") -> None:
+    st.markdown(
+        f'<div class="step"><span class="num">{number}</span>'
+        f'<span class="title">{title}</span></div>',
+        unsafe_allow_html=True,
+    )
     if hint:
         st.markdown(f'<div class="hint">{hint}</div>', unsafe_allow_html=True)
 
 
-# ------------------------------------------------------------------ header
-
-st.title("🛠️ איגנט לתיקון באגים")
-st.markdown(
-    "האיגנט מקבל קוד עם באג, **מוצא את הסיבה, מתקן אותה ומוכיח שהתיקון עובד** על ידי הרצת כל "
-    "הטסטים. הוא עובד על עותק, כך שהקבצים שלך לא משתנים בלי אישור."
-)
-
-# The API key is needed to talk to the model. It is never saved or shown.
-missing = logic.missing_key(settings)
-if missing:
-    with st.container(border=True):
-        step(
-            "לפני שמתחילים: מפתח API",
-            "המפתח נשמר רק בזיכרון עד שסוגרים את הדף, ולא נשמר בשום מקום.",
+def show_failures(failures: list[TestFailure] | tuple[TestFailure, ...]) -> None:
+    """Each failing test as a card: its name, where it failed, and what it reported."""
+    for failure in failures:
+        where = f'<span class="where">{html.escape(failure.location)}</span>'
+        st.markdown(
+            f'<div class="fail"><span class="name">❌ {html.escape(failure.name)}</span> '
+            f"{where if failure.location else ''}"
+            f'<div class="msg">{html.escape(failure.message)}</div></div>',
+            unsafe_allow_html=True,
         )
-        typed = st.text_input(missing, type="password", label_visibility="collapsed")
-        if typed:
-            os.environ[missing] = typed.strip()
-            st.rerun()
-
-# ------------------------------------------------------------------ step 1: what to fix
-
-UPLOAD, LOCAL = "להעלות תיקייה מהמחשב", "תיקייה לפי נתיב"
 
 
 def uploaded_project(files: list[UploadedFile]) -> Path:
@@ -94,8 +116,38 @@ def uploaded_project(files: list[UploadedFile]) -> Path:
     return repo
 
 
+# ------------------------------------------------------------------ header
+
+st.title("🛠️ איגנט לתיקון באגים", anchor=False)
+st.markdown(
+    """
+    <div class="hero">
+      <p>נותנים לו קוד עם טסטים שנכשלים. הוא מוצא את הסיבה, מתקן אותה ומוכיח שהתיקון עובד.
+      הוא עובד על עותק, כך שהקבצים שלך לא משתנים בלי אישור.</p>
+      <div class="how">
+        <div><b>📂</b>בוחרים פרויקט</div>
+        <div><b>🧪</b>רואים בדיוק מה נכשל</div>
+        <div><b>🛠️</b>מקבלים תיקון מוכח והסבר</div>
+      </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+# The API key is needed to talk to the model. It is never saved or shown.
+missing = logic.missing_key(settings)
+if missing:
+    with st.container(border=True):
+        step(0, "לפני שמתחילים: מפתח API", "נשמר רק בזיכרון עד שסוגרים את הדף, ולא בשום מקום אחר.")
+        typed = st.text_input(missing, type="password", label_visibility="collapsed")
+        if typed:
+            os.environ[missing] = typed.strip()
+            st.rerun()
+
+# ------------------------------------------------------------------ step 1: what to fix
+
 with st.container(border=True):
-    step("שלב 1: מה לתקן?")
+    step(1, "מה לתקן?")
     source = st.radio(
         "מה לתקן",
         ["באג לדוגמה (מוכן מראש)", UPLOAD, LOCAL],
@@ -105,20 +157,25 @@ with st.container(border=True):
     sample = None
     repo = Path()
     if source.startswith("באג"):
-        sample = st.selectbox("באג לדוגמה", logic.sample_cases(), format_func=logic.sample_label)
+        cases = logic.sample_cases()
+        sample = st.selectbox("באג לדוגמה", cases, format_func=logic.sample_label)
         repo = sample.repo
-        st.caption("13 באגים שהוכנו מראש. הם אף פעם לא משתנים, כך שאפשר להריץ שוב ושוב.")
+        st.caption(
+            f"{len(cases)} באגים אמיתיים ב-Python, JavaScript, Go, Rust, C++\u200e ו-C#\u200e. "
+            "הם אף פעם לא משתנים, כך שאפשר להריץ שוב ושוב."
+        )
     elif source == UPLOAD:
         files = st.file_uploader(
             "בוחרים את תיקיית הפרויקט (עם הקוד והטסטים)", accept_multiple_files="directory"
         )
-        st.caption("הקבצים מועתקים לתיקייה זמנית. בסוף אפשר להוריד את הפרויקט המתוקן כקובץ zip.")
         if files:
             try:
                 repo = uploaded_project(files)
-                st.caption(f"התקבלו {len(files)} קבצים מהתיקייה {repo.name}.")
+                st.caption(f"📂 התקבלו {len(files)} קבצים מהתיקייה **{repo.name}**.")
             except ValueError as exc:
                 st.warning(str(exc))
+        else:
+            st.caption("הקבצים מועתקים לתיקייה זמנית. בסוף מורידים את הפרויקט המתוקן כקובץ zip.")
     else:
         typed_path = st.text_input("הנתיב לתיקיית הפרויקט", placeholder=r"C:\Users\me\my-project")
         repo = Path(typed_path.strip().strip('"')).expanduser()
@@ -133,7 +190,7 @@ ready = has_path and not problem
 # ------------------------------------------------------------------ step 2: see the bug
 
 with st.container(border=True):
-    step("שלב 2: לראות שיש באג", "מריצים את הטסטים של הפרויקט, בלי איגנט ובלי עלות.")
+    step(2, "מה נכשל?", "מריצים את הטסטים של הפרויקט ורואים כל טסט שנכשל. בלי איגנט ובלי עלות.")
     if st.button("▶️ הרץ את הטסטים", disabled=not ready):
         with st.spinner("מריץ את הטסטים..."):
             runner, outcome = logic.check_project(repo, settings)
@@ -141,19 +198,19 @@ with st.container(border=True):
             st.success(f"כל {outcome.passed} הטסטים עוברים. אין כאן באג לתקן.")
         else:
             failing = outcome.failed + outcome.errors
-            st.error(
-                f"{failing} טסטים נכשלים ו-{outcome.passed} עוברים. יש באג, אפשר לעבור לשלב 3."
-            )
+            st.error(f"{failing} טסטים נכשלים ו-{outcome.passed} עוברים ({runner}).")
+            show_failures(outcome.failures)
         with st.expander("הפלט המלא של הטסטים"):
-            st.code(outcome.output or "(אין פלט)")
+            st.code(outcome.output or "(אין פלט)", language=None)
 
 # ------------------------------------------------------------------ step 3: fix it
 
 with st.container(border=True):
     step(
-        "שלב 3: לתקן",
-        "אותו איגנט נבנה פעמיים: פעם עם לולאה שכתבנו בעצמנו (בלי SDK), ופעם עם Claude Agent SDK. "
-        "אפשר להריץ אחד מהם, או את שניהם זה לצד זה ולהשוות.",
+        3,
+        "לתקן",
+        "אותו איגנט בנוי פעמיים: פעם עם לולאה שכתבנו בעצמנו (בלי SDK), ופעם עם Claude Agent SDK. "
+        "אפשר להריץ אחד מהם, או את שניהם ולהשוות.",
     )
     mode = st.radio(
         "איזה איגנט",
@@ -162,7 +219,12 @@ with st.container(border=True):
         label_visibility="collapsed",
     )
     engines = {"בלי SDK": ["raw"], "עם SDK": ["sdk"]}.get(mode, ["raw", "sdk"])
-    start = st.button("🔍 מצא ותקן את הבאג", type="primary", disabled=not ready or bool(missing))
+    start = st.button(
+        "🔍 מצא ותקן את הבאג",
+        type="primary",
+        disabled=not ready or bool(missing),
+        use_container_width=True,
+    )
 
 if start:
     st.session_state.results = {}
@@ -196,34 +258,55 @@ if start:
 def show_result(result: RunResult) -> None:
     good = result.status is RunStatus.RESOLVED
     message = texts.STATUS.get(result.status, result.status.value)
-    if good:
-        st.success(f"✅ {message} ({result.tests_passed} מתוך {result.tests_total}).")
-    else:
-        st.error(f"❌ {message}." + (f" {result.error}" if result.error else ""))
+    detail = (
+        f"לפני: {result.tests_failing_before} טסטים נכשלו. "
+        f"אחרי: {result.tests_passed} מתוך {result.tests_total} עוברים."
+    )
+    if result.error:
+        detail += f" {result.error}"
+    st.markdown(
+        f'<div class="verdict {"good" if good else "bad"}">{"✅" if good else "❌"} '
+        f"{html.escape(message)}<small>{html.escape(detail)}</small></div>",
+        unsafe_allow_html=True,
+    )
     a, b, c = st.columns(3)
     a.metric("צעדים", result.iterations)
     b.metric("זמן", f"{result.wall_time_s:.1f} שניות")
     c.metric("עלות", f"${result.cost_usd:.4f}")
-    if result.patch:
-        st.markdown("**השינוי בקוד** (שורה עם `-` נמחקה, שורה עם `+` נוספה):")
-        st.code(result.patch, language="diff")
-    if result.final_report:
-        with st.expander("הדוח של האיגנט: מה היה הבאג ולמה התיקון נכון (באנגלית)"):
+
+    sections = logic.report_sections(result.final_report)
+    if sections:
+        st.markdown("#### הדוח של האיגנט")
+        for title, body in sections:
+            with st.container(border=True):
+                st.markdown(f"**{title}**")
+                st.markdown(body)
+    elif result.final_report:
+        with st.expander("הדוח של האיגנט"):
             st.markdown(result.final_report)
+
+    if result.failing_tests:
+        with st.expander(f"הטסטים שנכשלו לפני התיקון ({len(result.failing_tests)})"):
+            show_failures(result.failing_tests)
+    if result.patch:
+        st.markdown("#### השינוי בקוד")
+        st.caption("שורה עם - נמחקה, שורה עם + נוספה.")
+        st.code(result.patch, language="diff")
 
 
 results: dict[str, RunResult] = st.session_state.get("results", {})
 if results:
     st.divider()
-    st.header("התוצאה")
+    st.header("התוצאה", anchor=False)
     if len(results) > 1:
         st.markdown("**השוואה בין שני האיגנטים:**")
         named = {texts.AGENTS[k]: v for k, v in results.items()}
         st.table(logic.comparison_rows(named))
-    for engine, result in results.items():
-        if len(results) > 1:
-            st.subheader(texts.AGENTS[engine])
-        show_result(result)
+        for tab, result in zip(st.tabs(list(named)), results.values(), strict=True):
+            with tab:
+                show_result(result)
+    else:
+        show_result(next(iter(results.values())))
 
     fixed = [r for r in results.values() if r.status is RunStatus.RESOLVED and r.changes]
     target = Path(st.session_state.repo)
@@ -235,16 +318,18 @@ if results:
             logic.fixed_project_zip(target, fixed[0].changes),
             file_name=f"{target.name}-fixed.zip",
             mime="application/zip",
+            use_container_width=True,
         )
         right.download_button(
             "⬇️ להוריד רק את השינוי (patch)",
             fixed[0].patch,
             file_name=f"{target.name}.patch",
             mime="text/x-diff",
+            use_container_width=True,
         )
     elif fixed and st.session_state.get("source") == LOCAL:
         st.info("התיקון נבדק על עותק. הקבצים שלך עדיין לא השתנו.")
-        if st.button(f"✅ להחיל את התיקון על {target.name}"):
+        if st.button(f"✅ להחיל את התיקון על {target.name}", use_container_width=True):
             try:
                 changed = apply_changes(target, fixed[0].changes)
                 st.success(f"התיקון הוחל על: {', '.join(changed)}")

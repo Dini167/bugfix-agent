@@ -117,6 +117,11 @@ def cmd_check(args: argparse.Namespace, display: Display) -> int:
         display.good(f"All {outcome.passed} tests pass. Nothing to fix.")
     else:
         display.bad(f"{outcome.failed + outcome.errors} failing, {outcome.passed} passing.")
+        for failure in outcome.failures:
+            where = f"  ({failure.location})" if failure.location else ""
+            display.line(f"  x {failure.name}{where}")
+            for text in failure.message.splitlines()[:6]:
+                display.line(f"      {text}")
         if args.verbose:
             display.line(outcome.output)
         display.line("Run `bugfix fix` to let the agent find and fix the cause.")

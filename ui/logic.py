@@ -48,7 +48,8 @@ def sample_label(case: Case) -> str:
     number = case.id[:2]
     name = texts.CASE_NAMES.get(number, case.title)
     language = texts.LANGUAGES.get(number, "Python")
-    return f"{number}. {name} · {language} · {texts.DIFFICULTY.get(case.difficulty, '')}"
+    # The mark after the language keeps "C++" and "C#" from flipping in right-to-left text.
+    return f"{number}. {name} · {language}\u200e · {texts.DIFFICULTY.get(case.difficulty, '')}"
 
 
 def check_project(repo: Path, settings: Settings) -> tuple[str, TestOutcome]:
@@ -75,9 +76,12 @@ def missing_key(settings: Settings) -> str | None:
 def to_step(event: dict[str, Any]) -> Step | None:
     kind = event.get("kind")
     if kind == "baseline":
+        names = [str(n) for n in event.get("failures") or []]
+        which = f" ({', '.join(names[:3])}{', ...' if len(names) > 3 else ''})" if names else ""
         return Step(
             "info",
-            f"מצב התחלתי: {event.get('failing', 0)} טסטים נכשלים, {event.get('passed', 0)} עוברים",
+            f"מצב התחלתי: {event.get('failing', 0)} טסטים נכשלים{which}, "
+            f"{event.get('passed', 0)} עוברים",
         )
     if kind == "model_text":
         text = " ".join(str(event.get("text", "")).split())
@@ -189,3 +193,16 @@ def fixed_project_zip(repo: Path, changes: list[FileChange]) -> bytes:
         for name, after in fixed.items():  # files the fix created
             archive.writestr(f"{repo.name}/{name}", after.encode("utf-8"))
     return buffer.getvalue()
+
+
+# 📘 הדוח של האיגנט כתוב בפורמט קבוע (## Root cause, ## Location ...). מפרקים אותו לחלקים כדי
+# 📘 להציג כל חלק בכרטיס משלו, עם כותרת בעברית.
+def report_sections(report: str) -> list[tuple[str, str]]:
+    """The report's sections as (Hebrew title, text), in reading order, without the verdict."""
+    found: dict[str, str] = {}
+    for chunk in ("\n" + report).split("\n## ")[1:]:
+        heading, _, body = chunk.partition("\n")
+        found[heading.strip()] = body.strip()
+    found.pop("Result", None)
+    known = [(texts.REPORT_TITLES[h], found.pop(h)) for h in texts.REPORT_TITLES if h in found]
+    return [(title, body) for title, body in known + list(found.items()) if body]

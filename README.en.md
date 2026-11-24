@@ -75,7 +75,7 @@ Everything else is optional:
 | `bugfix fix --trace run.jsonl` | Writes every model call and tool call to a file. |
 | `bugfix fix -v` | Shows the agent's full notes instead of a one-line summary. |
 | `bugfix ui` | Opens the agent in your browser (built with Streamlit). |
-| `bugfix benchmark` | Runs both agents on the 13 built-in bugs and writes a comparison table. |
+| `bugfix benchmark` | Runs both agents on the 15 built-in bugs and writes a comparison table. |
 
 `PATH` defaults to the current directory.
 
@@ -91,8 +91,10 @@ their results depend on the language, and those are detected automatically:
 | Go | `go.mod` | `go test ./...` |
 | Rust | `Cargo.toml` | `cargo test` |
 | Java / Kotlin | `pom.xml`, `build.gradle(.kts)` | `mvn test`, `gradle test` |
+| C / C++ | `CMakeLists.txt` | configure, build, then `ctest` |
+| C# / .NET | a `.sln` or `.csproj` | `dotnet test` |
 
-For anything else (Ruby, PHP, C#, ...), add a `bugfix.yaml` to the project
+For anything else (Ruby, PHP, Swift, ...), add a `bugfix.yaml` to the project
 with the command that runs your tests:
 
 ```yaml
@@ -161,6 +163,7 @@ that starts with `BUGFIX_`:
 | `BUGFIX_MODEL` | `claude-sonnet-5-5` |
 | `BUGFIX_FALLBACK_MODELS` | none; comma-separated, e.g. `groq:<model>,ollama:<model>` |
 | `BUGFIX_EFFORT` | `medium` |
+| `BUGFIX_REPORT_LANGUAGE` | `Hebrew` (headings and code stay in English) |
 | `BUGFIX_MAX_ITERATIONS` | `15` |
 | `BUGFIX_MAX_COST_USD` | `2.0` |
 | `BUGFIX_MAX_TOTAL_TOKENS` | `1500000` |
@@ -187,8 +190,8 @@ raw_agent/    the agent without an SDK
   loop.py         the agent loop
 sdk_agent/    the agent on the Claude Agent SDK
   agent.py        our tools as in-process MCP tools, built-ins off, message handling
-benchmark/    13 bugs in Python, JavaScript, Go and Rust, and the comparison runner
-tests/        216 tests, none of which need an API key
+benchmark/    15 bugs in Python, JavaScript, Go, Rust, C++ and C#, and the comparison runner
+tests/        248 tests, none of which need an API key
 ```
 
 Both agents plug into the same `run_case()` in `core/harness.py`. The only thing
@@ -198,7 +201,7 @@ makes the comparison fair.
 ## The benchmark
 
 ```bash
-bugfix benchmark                         # both agents, all 13 cases, 3 runs each
+bugfix benchmark                         # both agents, all 15 cases, 3 runs each
 bugfix benchmark --engine raw --cases 01 11 --repeats 1
 ```
 

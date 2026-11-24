@@ -1,0 +1,12 @@
+id: 15_csharp_struct_copy
+title: Adding an item that is already in the cart does not change its quantity
+difficulty: hard
+category: c# / value-type copy
+ground_truth:
+  description: 'CartLine is a struct. Cart.Add reads the matching line into a local variable, which
+    is a copy, increases the copy''s Quantity and returns, so the list never sees the change. Fix:
+    write the updated copy back into the list.'
+  fix:
+    file: src/Shop/Cart.cs
+    old: "            line.Quantity += quantity;\n            return;"
+    new: "            line.Quantity += quantity;\n            _lines[i] = line;\n            return;"

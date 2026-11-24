@@ -1,0 +1,11 @@
+id: 14_cpp_accumulate_truncation
+title: Sensor averages lose their fractions
+difficulty: medium
+category: c++ / implicit conversion
+ground_truth:
+  description: 'total() calls std::accumulate with the initial value 0, an int, so the accumulator
+    is an int and every partial sum is truncated toward zero. Fix: start from 0.0, a double.'
+  fix:
+    file: src/stats.cpp
+    old: std::accumulate(readings.begin(), readings.end(), 0)
+    new: std::accumulate(readings.begin(), readings.end(), 0.0)

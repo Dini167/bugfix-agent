@@ -53,6 +53,16 @@ _PROTECTED_NAMES = frozenset(
         "build.gradle.kts",
         "settings.gradle",
         "settings.gradle.kts",
+        # C and C++
+        "CMakeLists.txt",
+        "CTestTestfile.cmake",
+        # C# / .NET
+        "Directory.Build.props",
+        "Directory.Build.targets",
+        "Directory.Packages.props",
+        "global.json",
+        "nuget.config",
+        "NuGet.Config",
     }
 )
 _PROTECTED_PREFIXES = ("test_",)
@@ -64,10 +74,25 @@ _PROTECTED_SUFFIXES = (
     "Test.java",
     "Tests.java",
     "Test.kt",
+    # C and C++
+    "_test.c",
+    "_test.cc",
+    "_test.cpp",
+    "_tests.cpp",
+    "Test.cpp",
+    "Tests.cpp",
+    # C# / .NET: tests, and the project files that say how they build and run
+    "Test.cs",
+    "Tests.cs",
+    ".csproj",
+    ".fsproj",
+    ".sln",
+    ".runsettings",
 )
 _PROTECTED_INFIXES = (".test.", ".spec.")  # foo.test.ts, foo.spec.js, ...
 _PROTECTED_CONFIG_PREFIXES = ("jest.config.", "vitest.config.", "karma.conf.", ".mocharc")
 _PROTECTED_DIRS = frozenset({"tests", "test", "__tests__", "spec"})
+_PROTECTED_DIR_SUFFIXES = (".Tests", ".Test", ".UnitTests", ".IntegrationTests")  # .NET
 
 
 # 📘 אילו קבצים אסור לגעת בהם, בכל שפה: קבצי טסט וקבצים שקובעים איך הטסטים רצים. שינוי שלהם היה
@@ -84,7 +109,10 @@ def is_protected(relative_path: str) -> bool:
         return True
     if any(infix in name for infix in _PROTECTED_INFIXES):
         return True
-    return any(part in _PROTECTED_DIRS for part in path.parts[:-1])
+    folders = path.parts[:-1]
+    if any(part.endswith(_PROTECTED_DIR_SUFFIXES) for part in folders):
+        return True
+    return any(part in _PROTECTED_DIRS for part in folders)
 
 
 def _hash(path: Path) -> str:

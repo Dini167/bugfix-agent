@@ -23,8 +23,10 @@ CASE_NAMES = {
     "11": "טבלת שיאים מציגה קודם את הציונים הנמוכים",
     "12": "בעמוד האחרון של תוצאות תמיד חסר פריט",
     "13": "תצוגה מקדימה קורסת על טקסט בעברית ועל אימוג'י",
+    "14": "ממוצע של חיישנים מאבד את השברים",
+    "15": "הוספת מוצר שכבר בעגלה לא משנה את הכמות",
 }
-LANGUAGES = {"11": "JavaScript", "12": "Go", "13": "Rust"}
+LANGUAGES = {"11": "JavaScript", "12": "Go", "13": "Rust", "14": "C++", "15": "C#"}
 DIFFICULTY = {"easy": "קל", "medium": "בינוני", "hard": "קשה"}
 
 STATUS = {
@@ -34,6 +36,19 @@ STATUS = {
     RunStatus.TESTS_TAMPERED: "נפסל: האיגנט שינה קבצי טסט, וזה אסור",
     RunStatus.ALREADY_PASSING: "אין מה לתקן: כל הטסטים כבר עוברים",
     RunStatus.ERROR: "נעצר בגלל שגיאה",
+}
+
+# The agent writes its report under these English headings (core/prompts.py);
+# the page shows them under Hebrew titles, in this order.
+REPORT_TITLES = {
+    "Root cause": "🐞 מה היה הבאג",
+    "Failing tests": "🧪 אילו טסטים נכשלו",
+    "Location": "📍 איפה",
+    "Change": "✏️ מה שונה",
+    "Why it is correct": "✅ למה התיקון נכון",
+    "Risk": "⚖️ השפעה על שאר הקוד",
+    "Prevention": "🛡️ איך למנוע את זה בפעם הבאה",
+    "Tests": "📊 תוצאת הטסטים",
 }
 
 AGENTS = {

@@ -88,3 +88,12 @@ def test_settings_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("BUGFIX_MODEL", "claude-opus-5-5")
     s = Settings.from_env()
     assert (s.max_iterations, s.max_cost_usd, s.model) == (7, 0.5, "claude-opus-5-5")
+
+
+def test_report_language_in_the_shared_prompt() -> None:
+    from core.prompts import SYSTEM_PROMPT, system_prompt
+
+    hebrew = system_prompt(Settings())
+    assert hebrew.startswith(SYSTEM_PROMPT) and "in Hebrew" in hebrew
+    assert "## Root cause" in hebrew and "## Prevention" in hebrew
+    assert system_prompt(Settings(report_language="English")) == SYSTEM_PROMPT

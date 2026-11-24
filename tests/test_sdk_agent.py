@@ -28,7 +28,7 @@ from claude_agent_sdk import (
 from benchmark.catalog import load_cases
 from core.config import Settings
 from core.harness import run_case
-from core.prompts import SYSTEM_PROMPT
+from core.prompts import system_prompt
 from core.sandbox import Workspace
 from core.telemetry import Tracer
 from core.tools import Toolbox
@@ -93,7 +93,7 @@ def test_options_match_raw_agent_capabilities(workspace: Any) -> None:
     tools = build_tools(toolbox, Tracer(None))
     options = build_options(settings, toolbox, tools)
 
-    assert options.system_prompt == SYSTEM_PROMPT
+    assert options.system_prompt == system_prompt(settings)
     assert options.tools == []  # no Bash/Read/Edit or other built-ins
     assert options.allowed_tools == [mcp_tool_name(s.name) for s in Toolbox.specs()]
     assert options.permission_mode == "dontAsk"

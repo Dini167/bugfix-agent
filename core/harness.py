@@ -72,6 +72,7 @@ def run_case(
             runner=baseline.runner,
             passed=baseline.passed,
             failing=baseline.failed + baseline.errors,
+            failures=[f.name for f in baseline.failures],
         )
         snapshot = ProtectedSnapshot.take(workspace.root)
         if baseline.all_passed:
@@ -111,6 +112,7 @@ def run_case(
             final_report=outcome.final_report,
             error=outcome.error,
             tests_failing_before=baseline.failed + baseline.errors,
+            failing_tests=list(baseline.failures),
             runner=baseline.runner,
         )
         grade(result, workspace, snapshot, settings)

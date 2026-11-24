@@ -23,6 +23,35 @@ CASE = next(c for c in load_cases() if c.id == "01_off_by_one")
 APP = Path(__file__).resolve().parent.parent / "ui" / "app.py"
 
 
+REPORT = """## Result
+RESOLVED
+
+## Failing tests
+`test_average_of_several_grades`: ציפה ל-85.0 וקיבל 55.0.
+
+## Root cause
+הלולאה ב-`average()` מתחילה מאינדקס 1, ולכן הציון הראשון לא נספר.
+
+## Location
+`gradebook/stats.py:9`
+
+## Change
+`range(1, len(grades))` הוחלף ב-`range(len(grades))`.
+
+## Why it is correct
+הסכום כולל עכשיו את כל האיברים, והמכנה נשאר `len(grades)`.
+
+## Risk
+נמוכה: הפונקציה לא משנה את הקלט, וכל 4 הטסטים עוברים.
+
+## Tests
+4 passed, 0 failed.
+
+## Prevention
+לולאה על כל האיברים נכתבת כ-`sum(grades)` או `for g in grades`, בלי אינדקסים.
+"""
+
+
 class ReferenceEngine:
     name = "reference"
 
@@ -31,7 +60,7 @@ class ReferenceEngine:
         tracer.event("model_text", text="The loop starts at index 1.")
         toolbox.dispatch("edit_file", {"path": fix.file, "old": fix.old, "new": fix.new})
         tracer.event("tool_call", tool="edit_file", arguments={"path": fix.file}, is_error=False)
-        return EngineOutcome(RunStatus.UNRESOLVED, final_report="## Result\nRESOLVED")
+        return EngineOutcome(RunStatus.UNRESOLVED, final_report=REPORT)
 
 
 def fake_run_agent(
@@ -53,16 +82,22 @@ def test_events_become_readable_steps() -> None:
     assert tool == logic.Step("tool", "קורא את הקובץ a.py")
     assert logic.to_step({"kind": "model_text", "text": "## Result\nRESOLVED"}) is None
     assert logic.to_step({"kind": "model_call"}) is None
+    named = logic.to_step({"kind": "baseline", "failing": 1, "passed": 3, "failures": ["test_a"]})
+    assert named == logic.Step("info", "מצב התחלתי: 1 טסטים נכשלים (test_a), 3 עוברים")
     warn = logic.to_step({"kind": "fallback", "from": "a", "to": "b", "error": "X: no | status=1"})
     assert warn is not None and warn.kind == "warn" and "ממשיכים עם b" in warn.text
 
 
 def test_check_and_samples() -> None:
-    assert len(logic.sample_cases()) == 13
-    assert logic.sample_label(CASE) == "01. ממוצע ציונים מדלג על הציון הראשון · Python · קל"
+    assert len(logic.sample_cases()) == 15
+    assert logic.sample_label(CASE) == "01. ממוצע ציונים מדלג על הציון הראשון · Python\u200e · קל"
     assert all(c.id[:2] in texts.CASE_NAMES for c in logic.sample_cases())
     runner, outcome = logic.check_project(CASE.repo, Settings())
     assert runner == "python/pytest" and outcome.failed == 2
+    assert [f.location for f in outcome.failures] == [
+        "tests/test_stats.py:7",
+        "tests/test_stats.py:11",
+    ]
     assert logic.is_supported(CASE.repo) is None
     assert "לא מצאתי" in (logic.is_supported(Path("/no/such/folder")) or "")
 
@@ -96,11 +131,16 @@ def test_page_runs_a_sample_fix(monkeypatch: pytest.MonkeyPatch) -> None:
     next(b for b in page.button if "הרץ את הטסטים" in b.label).click().run()
     assert not page.exception
     assert "2 טסטים נכשלים" in page.error[0].value
+    cards = " ".join(m.value for m in page.markdown)
+    assert "test_average_of_single_grade" in cards and "tests/test_stats.py:11" in cards
 
     next(b for b in page.button if "מצא ותקן" in b.label).click().run()
     assert not page.exception
-    assert any("תוקן" in s.value for s in page.success)
+    shown = " ".join(m.value for m in page.markdown)
+    assert "תוקן" in shown
+    assert "מה היה הבאג" in shown and "מתחילה מאינדקס 1" in shown  # the report, in sections
     assert page.table  # the side-by-side comparison
+    assert len(page.tabs) == 2  # one tab per agent
     # Sample bugs are never modified, so no apply button is offered.
     assert not any("להחיל" in b.label for b in page.button)
 
@@ -164,3 +204,11 @@ def test_page_offers_to_apply_on_a_local_folder(
     assert any("התיקון הוחל" in s.value for s in page.success)
     fix = CASE.reference_fix
     assert fix.new in (project / fix.file).read_text(encoding="utf-8")
+
+
+def test_report_sections_in_hebrew_order() -> None:
+    sections = logic.report_sections(REPORT + "\n## Extra\nmore\n")
+    titles = [title for title, _ in sections]
+    assert titles[:3] == ["🐞 מה היה הבאג", "🧪 אילו טסטים נכשלו", "📍 איפה"]
+    assert titles[-1] == "Extra" and "Result" not in " ".join(titles)
+    assert logic.report_sections("no headings at all") == []

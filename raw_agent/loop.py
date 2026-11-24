@@ -17,7 +17,7 @@ from __future__ import annotations
 from core.config import FREE, PRICING
 from core.guards import Budget, BudgetExceeded
 from core.harness import EngineOutcome
-from core.prompts import SYSTEM_PROMPT, TASK_PROMPT
+from core.prompts import TASK_PROMPT, system_prompt
 from core.telemetry import Tracer
 from core.tools import Toolbox
 from core.types import RunStatus, ToolResult
@@ -41,7 +41,9 @@ class RawEngine:
         self._provider = provider
 
     def solve(self, toolbox: Toolbox, budget: Budget, tracer: Tracer) -> EngineOutcome:
-        conversation = self._provider.new_conversation(SYSTEM_PROMPT, toolbox.specs())
+        conversation = self._provider.new_conversation(
+            system_prompt(budget.settings), toolbox.specs()
+        )
         # 📘 פותחים שיחה: הוראות המערכת, רשימת הכלים והמשימה עצמה.
         conversation.add_user_text(TASK_PROMPT)
 

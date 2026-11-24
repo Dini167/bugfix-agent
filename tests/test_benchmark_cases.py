@@ -3,6 +3,8 @@ fixed by its reference fix, without touching any protected file."""
 
 from __future__ import annotations
 
+import shutil
+
 import pytest
 
 from benchmark.catalog import Case, load_cases
@@ -19,8 +21,15 @@ CASES = load_cases()
 
 
 def test_case_inventory() -> None:
-    assert len(CASES) == 13
-    assert len({c.id for c in CASES}) == 13
+    assert len(CASES) == 15
+    assert len({c.id for c in CASES}) == 15
+
+
+def _needs_toolchain(case: Case) -> None:
+    """Skip a case whose compiler or test runner is not installed on this machine."""
+    tool = {"cpp/cmake": "cmake", "csharp/dotnet": "dotnet"}.get(detect_runner(case.repo).name)
+    if tool and not shutil.which(tool):
+        pytest.skip(f"{tool} is not installed")
 
 
 @pytest.mark.parametrize(
@@ -30,6 +39,8 @@ def test_case_inventory() -> None:
         (next(c for c in CASES if c.id.startswith("11")), "javascript/node"),
         (next(c for c in CASES if c.id.startswith("12")), "go/go-test"),
         (next(c for c in CASES if c.id.startswith("13")), "rust/cargo"),
+        (next(c for c in CASES if c.id.startswith("14")), "cpp/cmake"),
+        (next(c for c in CASES if c.id.startswith("15")), "csharp/dotnet"),
     ],
     ids=lambda v: v if isinstance(v, str) else v.id,
 )
@@ -39,10 +50,13 @@ def test_runner_detection(case: Case, runner: str) -> None:
 
 @pytest.mark.parametrize("case", CASES, ids=lambda c: c.id)
 def test_case_fails_as_shipped(case: Case) -> None:
+    _needs_toolchain(case)
     with Workspace.from_source(case.repo) as ws:
         outcome = run_test_suite(ws, Settings())
     assert outcome.failed + outcome.errors > 0, "a benchmark case must start broken"
     assert outcome.passed > 0, "a case should also have passing tests that a bad fix can break"
+    assert outcome.failures, "each failing test should be reported with its message"
+    assert all(f.message for f in outcome.failures)
 
 
 class ReferenceEngine:
@@ -62,6 +76,7 @@ class ReferenceEngine:
 
 @pytest.mark.parametrize("case", CASES, ids=lambda c: c.id)
 def test_reference_fix_resolves_case(case: Case) -> None:
+    _needs_toolchain(case)
     assert not is_protected(case.reference_fix.file)
     result = run_case(case.id, case.repo, ReferenceEngine(case), Settings())
     assert result.status is RunStatus.RESOLVED, result

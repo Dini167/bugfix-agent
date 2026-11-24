@@ -53,6 +53,17 @@ class Usage:
 
 
 @dataclass(frozen=True, slots=True)
+class TestFailure:
+    """One failing test: its name, what went wrong, and where, when the runner says."""
+
+    __test__ = False  # not a pytest test class, despite the name
+
+    name: str
+    message: str
+    location: str = ""
+
+
+@dataclass(frozen=True, slots=True)
 class TestOutcome:
     """The result of one full run of a repository's test suite."""
 
@@ -64,6 +75,7 @@ class TestOutcome:
     timed_out: bool
     output: str
     runner: str = ""
+    failures: tuple[TestFailure, ...] = ()
 
     @property
     def total(self) -> int:
@@ -121,6 +133,7 @@ class RunResult:
     tests_passed: int = 0
     tests_total: int = 0
     tests_failing_before: int = 0
+    failing_tests: list[TestFailure] = field(default_factory=list)
     runner: str = ""
     changes: list[FileChange] = field(default_factory=list)
     patch: str = ""

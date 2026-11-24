@@ -10,7 +10,7 @@ Agent SDK. Any difference in behavior is therefore caused by that layer alone.
 
 | | `raw_agent` (no SDK) | `sdk_agent` (Claude Agent SDK) |
 |---|---|---|
-| Code we own, excluding comments and docstrings | **438 lines, 4 files** (plus 252 for free models and fallback) | **149 lines, 1 file** |
+| Code we own, excluding comments and docstrings | **440 lines, 4 files** (plus 252 for free models and fallback) | **149 lines, 1 file** |
 | Agent loop | Written by hand (`while True` over stop reasons) | Provided (`query()` drives it) |
 | HTTP, auth headers, API versioning | Written by hand | Provided |
 | Retries and error taxonomy | Written by hand (backoff with jitter, `retry-after`, `x-should-retry`) | Provided |
@@ -34,13 +34,13 @@ benchmark run.
 | raw_agent | HTTP client, errors, retries (`client.py`) | 181 |
 | raw_agent | Provider interface and neutral history (`providers/base.py`) | 50 |
 | raw_agent | Wire format for Anthropic (`providers/anthropic.py`) | 121 |
-| raw_agent | Agent loop (`loop.py`) | 86 |
-| **raw_agent** | **Total for the Claude agent** | **438** |
+| raw_agent | Agent loop (`loop.py`) | 88 |
+| **raw_agent** | **Total for the Claude agent** | **440** |
 | raw_agent | Free models and fallback (`providers/openai_compat.py`, `providers/fallback.py`) | 252 |
 | sdk_agent | SDK wiring and message handling (`agent.py`) | 149 |
-| shared | Tools, sandbox, guards, grading, languages, harness (`core/`) | 904 |
+| shared | Tools, sandbox, guards, grading, languages, harness (`core/`) | 1190 |
 
-About 60 of the 438 lines exist so that a run can move between providers (a
+About 60 of the 440 lines exist so that a run can move between providers (a
 provider-neutral history, and replaying it in the Anthropic format). Without
 the fallback feature the raw agent was 377 lines.
 
@@ -49,7 +49,7 @@ Two observations matter more than the totals:
 1. **The SDK removes the plumbing, not the engineering.** 70% of the raw agent is
    HTTP, retries and wire format: work that is necessary, easy to get subtly
    wrong, and identical for every agent. The SDK removes exactly that.
-2. **Most of the real work is shared.** The 902 shared lines (tools, path
+2. **Most of the real work is shared.** The 1190 shared lines (tools, path
    containment, test-file protection, budgets, independent grading, language
    detection) are needed by both. An SDK does not write your safety model for you.
 
@@ -61,7 +61,7 @@ Without the SDK, the loop is ours. Every stop reason needs a decision:
 
 ```python
 # raw_agent/loop.py (condensed)
-conversation = provider.new_conversation(SYSTEM_PROMPT, toolbox.specs())
+conversation = provider.new_conversation(system_prompt(settings), toolbox.specs())
 conversation.add_user_text(TASK_PROMPT)
 while True:
     budget.record_iteration()
@@ -121,7 +121,7 @@ ClaudeAgentOptions(
     permission_mode="dontAsk",   # anything else is denied
     strict_mcp_config=True,      # no MCP servers from the host machine
     setting_sources=[],          # no user/project settings or CLAUDE.md
-    system_prompt=SYSTEM_PROMPT, # replaces the SDK's default prompt
+    system_prompt=system_prompt(settings), # replaces the SDK's default prompt
 )
 ```
 
@@ -182,13 +182,15 @@ hide.
 
 ## Results on the benchmark
 
-The benchmark has 13 cases in Python, JavaScript, Go and Rust, from easy to hard,
+The benchmark has 15 cases in Python, JavaScript, Go, Rust, C++ and C#, from easy to hard,
 including two cross-file bugs and one rounding trap where the obvious fix breaks
 other tests. Every case is validated by the test suite: it must fail as shipped,
 and its reference fix must make it pass.
 
 **Run on 2026-11-24** with `claude-haiku-5-5`, effort `medium`, 3 repeats per case
 (78 runs in all, total cost about $0.08). Full tables: `benchmark/results/results.md`.
+This run covers the first 13 cases and the earlier, shorter report format; the C++
+and C# cases (14 and 15) and the senior-level report were added after it.
 
 | Agent | Resolved | Mean iterations | Mean input tokens | Mean output tokens | Mean cost (USD) | Median time (s) | Max time (s) | Tampered | Budget hit | Errors |
 |---|---|---|---|---|---|---|---|---|---|---|
