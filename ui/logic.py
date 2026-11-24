@@ -9,6 +9,7 @@ check them, run an agent and turn its events into readable steps.
 
 from __future__ import annotations
 
+import difflib
 import io
 import os
 import zipfile
@@ -25,6 +26,7 @@ from core.languages import UnsupportedRepository, detect_runner
 from core.sandbox import Workspace
 from core.tools import run_test_suite
 from core.types import FileChange, RunResult, TestOutcome
+from raw_agent import review
 from ui import texts
 
 CLAUDE_MODELS = ["claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5"]
@@ -206,3 +208,48 @@ def report_sections(report: str) -> list[tuple[str, str]]:
     found.pop("Result", None)
     known = [(texts.REPORT_TITLES[h], found.pop(h)) for h in texts.REPORT_TITLES if h in found]
     return [(title, body) for title, body in known + list(found.items()) if body]
+
+
+# ------------------------------------------------------------------ one file, no tests
+
+# 📘 בדיקה של קובץ בודד: הדף שולח את הקוד למודל, ומקבל רשימה של באגים (או רשימה ריקה).
+SEVERITY = {"critical": "קריטי", "major": "חמור", "minor": "קל"}
+
+
+def review_code(filename: str, code: str, settings: Settings) -> review.Review:
+    """Find the bugs in one file. Nothing is changed; see `review.apply_finding`."""
+    from cli.engines import open_provider
+
+    with open_provider(settings) as provider:
+        return review.review_file(provider, filename, code, settings)
+
+
+def snippet(code: str, start: int, end: int, context: int = 2) -> list[tuple[int, str, bool]]:
+    """(line number, text, is part of the problem) for the problem lines and a few around them."""
+    lines = code.splitlines()
+    first, last = max(1, start - context), min(len(lines), end + context)
+    return [(n, lines[n - 1], start <= n <= end) for n in range(first, last + 1)]
+
+
+def file_diff(filename: str, before: str, after: str) -> str:
+    """A unified diff of one file, for showing what the approved fixes changed."""
+    return "".join(
+        difflib.unified_diff(
+            before.splitlines(keepends=True),
+            after.splitlines(keepends=True),
+            fromfile=f"a/{filename}",
+            tofile=f"b/{filename}",
+        )
+    )
+
+
+def decode(data: bytes) -> str | None:
+    """The file as text, or None when it is not a text file."""
+    if b"\x00" in data[:4096]:
+        return None
+    for encoding in ("utf-8-sig", "cp1255", "latin-1"):
+        try:
+            return data.decode(encoding)
+        except UnicodeDecodeError:
+            continue
+    return None

@@ -140,7 +140,7 @@ def test_page_runs_a_sample_fix(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "תוקן" in shown
     assert "מה היה הבאג" in shown and "מתחילה מאינדקס 1" in shown  # the report, in sections
     assert page.table  # the side-by-side comparison
-    assert len(page.tabs) == 2  # one tab per agent
+    assert len(page.tabs) == 4  # the two views, then one tab per agent
     # Sample bugs are never modified, so no apply button is offered.
     assert not any("להחיל" in b.label for b in page.button)
 
@@ -212,3 +212,17 @@ def test_report_sections_in_hebrew_order() -> None:
     assert titles[:3] == ["🐞 מה היה הבאג", "🧪 אילו טסטים נכשלו", "📍 איפה"]
     assert titles[-1] == "Extra" and "Result" not in " ".join(titles)
     assert logic.report_sections("no headings at all") == []
+
+
+def test_file_helpers() -> None:
+    code = "a\nb\nc\nd\ne\nf\n"
+    assert logic.snippet(code, 3, 3, context=1) == [
+        (2, "b", False),
+        (3, "c", True),
+        (4, "d", False),
+    ]
+    assert logic.decode("שלום".encode()) == "שלום"
+    assert logic.decode("שלום".encode("cp1255")) == "שלום"
+    assert logic.decode(b"\x00\x01binary") is None
+    diff = logic.file_diff("a.py", "x = 1\n", "x = 2\n")
+    assert "-x = 1" in diff and "+x = 2" in diff

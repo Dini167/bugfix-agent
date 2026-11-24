@@ -140,3 +140,64 @@ def test_benchmark_writes_reports(tmp_path: Path) -> None:
     assert "Lines of code" in md
     assert (tmp_path / "results.json").exists()
     assert render_markdown(results, cases, Settings()).startswith("# Benchmark results")
+
+
+REVIEWED = "def average(grades):\n    return sum(grades[1:]) / len(grades)\n"
+
+
+class _OneReview:
+    """A provider whose only answer is one review with one finding."""
+
+    name = "scripted"
+
+    def new_conversation(self, system: str, tools: list[object], history: object = ()) -> object:
+        from core.types import Usage
+        from raw_agent.providers.base import ModelTurn, StopReason, ToolCall
+
+        finding = {
+            "title": "The first grade is skipped",
+            "severity": "major",
+            "explanation": "average([90, 80]) returns 40 instead of 85.",
+            "original": "sum(grades[1:])",
+            "fixed": "sum(grades)",
+            "why_fix_works": "Every grade is summed.",
+        }
+        call = ToolCall("t1", "report_findings", {"summary": "ok", "findings": [finding]})
+        turn = ModelTurn("", [call], StopReason.TOOL_USE, Usage(10, 5))
+
+        class Conversation:
+            def add_user_text(self, text: str) -> None:
+                pass
+
+            def send(self) -> ModelTurn:
+                return turn
+
+        return Conversation()
+
+
+@pytest.fixture
+def scripted_review(monkeypatch: pytest.MonkeyPatch) -> None:
+    @contextmanager
+    def provider(settings: Settings) -> Iterator[_OneReview]:
+        yield _OneReview()
+
+    monkeypatch.setattr("cli.engines.open_provider", provider)
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test")
+
+
+def test_review_dry_run_changes_nothing(
+    tmp_path: Path, scripted_review: None, capsys: pytest.CaptureFixture[str]
+) -> None:
+    source = tmp_path / "grades.py"
+    source.write_text(REVIEWED, encoding="utf-8")
+    assert cli_main.main(["review", str(source), "--dry-run"]) == 0
+    out = capsys.readouterr().out
+    assert "1 bug(s) found" in out and "(line 2)" in out and "+ sum(grades)" in out
+    assert source.read_text(encoding="utf-8") == REVIEWED
+
+
+def test_review_yes_saves_the_fix(tmp_path: Path, scripted_review: None) -> None:
+    source = tmp_path / "grades.py"
+    source.write_text(REVIEWED, encoding="utf-8")
+    assert cli_main.main(["review", str(source), "--yes"]) == 0
+    assert "return sum(grades) / len(grades)" in source.read_text(encoding="utf-8")

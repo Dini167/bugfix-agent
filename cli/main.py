@@ -209,6 +209,72 @@ def finish(result: RunResult, repo: Path, args: argparse.Namespace, display: Dis
     return 0
 
 
+# 📘 בדיקה של קובץ אחד, בלי טסטים: מציג כל באג ושואל על כל אחד אם לתקן.
+def cmd_review(args: argparse.Namespace, display: Display) -> int:
+    from cli.engines import open_provider
+    from raw_agent import review
+    from raw_agent.client import APIError
+
+    path: Path = args.file.resolve()
+    if not path.is_file():
+        display.bad(f"No such file: {path}")
+        return 2
+    settings = Settings.from_env()
+    if args.model:
+        settings = _with(settings, model=args.model)
+    if not _keys_present(settings, display):
+        return 2
+    code = path.read_text(encoding="utf-8")
+    display.title(f"Reviewing {path.name} ({settings.model}). The file is not changed yet.")
+    try:
+        with open_provider(settings) as provider:
+            result = review.review_file(provider, path.name, code, settings)
+    except (review.ReviewError, APIError) as exc:
+        display.bad(f"Review failed: {exc}")
+        return 1
+    if result.summary:
+        display.line(result.summary)
+    if not result.findings:
+        display.good("No bugs found. Nothing to fix.")
+        return 0
+    display.bad(f"{len(result.findings)} bug(s) found.")
+    fixed = code
+    for number, finding in enumerate(result.findings, 1):
+        display.line()
+        where = f" (line {finding.start_line})" if finding.applicable else ""
+        display.title(f"{number}. [{finding.severity}] {finding.title}{where}")
+        display.line(finding.explanation)
+        display.line()
+        display.line("\n".join(f"- {line}" for line in finding.original.splitlines()))
+        display.line("\n".join(f"+ {line}" for line in finding.fixed.splitlines()))
+        if finding.why_fix_works:
+            display.line(finding.why_fix_works)
+        if not finding.applicable:
+            display.info("This piece of code could not be located exactly; fix it by hand.")
+            continue
+        if args.dry_run or not (args.yes or _confirm("Fix this?", display)):
+            continue
+        try:
+            candidate = review.apply_finding(fixed, finding)
+        except review.ReviewError as exc:
+            display.bad(str(exc))
+            continue
+        problem = review.syntax_problem(path.name, candidate)
+        if problem:
+            display.bad(f"Not applied: it would break the syntax ({problem}).")
+            continue
+        fixed = candidate
+        display.good("Fixed.")
+    display.line()
+    display.info(f"{result.wall_time_s:.0f}s, about ${result.cost_usd:.4f}")
+    if fixed == code:
+        display.info("Your file was not changed.")
+        return 0
+    path.write_text(fixed, encoding="utf-8")
+    display.good(f"Saved the fixes to {path.name}.")
+    return 0
+
+
 # 📘 פותח את הממשק הגרפי בדפדפן. Streamlit מריץ שרת קטן על המחשב שלך, ורק את רואה אותו.
 def cmd_ui(args: argparse.Namespace, display: Display) -> int:
     import subprocess
@@ -326,6 +392,15 @@ def build_parser() -> argparse.ArgumentParser:
     mode.add_argument("-y", "--yes", action="store_true", help="Apply without asking.")
     mode.add_argument("--dry-run", action="store_true", help="Show the fix, never apply it.")
 
+    rev = sub.add_parser("review", help="Find bugs in one file, no tests needed; fix on request.")
+    rev.add_argument("file", type=Path)
+    rev.add_argument("--model", help="Model to use.")
+    rev_mode = rev.add_mutually_exclusive_group()
+    rev_mode.add_argument(
+        "-y", "--yes", action="store_true", help="Apply every fix without asking."
+    )
+    rev_mode.add_argument("--dry-run", action="store_true", help="Only show the bugs.")
+
     ui = sub.add_parser("ui", help="Open the agent in your browser.")
     ui.add_argument("--port", type=int, default=8501)
 
@@ -344,7 +419,13 @@ def main(argv: list[str] | None = None) -> int:
             reconfigure(errors="replace")
     args = build_parser().parse_args(argv)
     display = Display(verbose=getattr(args, "verbose", False))
-    commands = {"check": cmd_check, "fix": cmd_fix, "ui": cmd_ui, "benchmark": cmd_benchmark}
+    commands = {
+        "check": cmd_check,
+        "fix": cmd_fix,
+        "review": cmd_review,
+        "ui": cmd_ui,
+        "benchmark": cmd_benchmark,
+    }
     try:
         return commands[args.command](args, display)
     except KeyboardInterrupt:

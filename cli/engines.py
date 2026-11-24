@@ -27,14 +27,9 @@ def open_engine(name: str, settings: Settings) -> Iterator[Engine]:
     """Yield a ready engine; closes its resources (e.g. the HTTP clients) afterwards."""
     if name == "raw":
         from raw_agent.loop import RawEngine
-        from raw_agent.providers.fallback import FallbackProvider
 
-        with ExitStack() as stack:
-            # 📘 המודל הראשי ואחריו מודלי הגיבוי, לפי הסדר. אם יש רק מודל אחד, אין צורך בשרשרת.
-            chain = [
-                _provider(model, settings, stack) for model in [settings.model, *settings.fallbacks]
-            ]
-            yield RawEngine(chain[0] if len(chain) == 1 else FallbackProvider(chain))
+        with open_provider(settings) as provider:
+            yield RawEngine(provider)
     elif name == "sdk":
         # 📘 [עם SDK] ה-SDK עובד רק עם Claude, ולכן מודל חינמי או שרשרת גיבוי לא אפשריים בו.
         if is_free_model(settings.model):
@@ -46,6 +41,18 @@ def open_engine(name: str, settings: Settings) -> Iterator[Engine]:
         yield SdkEngine()
     else:
         raise EngineSetupError(f"unknown engine {name!r}; choose one of: {', '.join(ENGINES)}")
+
+
+@contextmanager
+def open_provider(settings: Settings) -> Iterator[ModelProvider]:
+    """The raw agent's model chain on its own: the main model, then any backups."""
+    from raw_agent.providers.fallback import FallbackProvider
+
+    with ExitStack() as stack:
+        # 📘 המודל הראשי ואחריו מודלי הגיבוי, לפי הסדר. אם יש רק מודל אחד, אין צורך בשרשרת.
+        models = [settings.model, *settings.fallbacks]
+        chain = [_provider(model, settings, stack) for model in models]
+        yield chain[0] if len(chain) == 1 else FallbackProvider(chain)
 
 
 def _provider(model: str, settings: Settings, stack: ExitStack) -> ModelProvider:
