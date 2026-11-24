@@ -12,6 +12,11 @@ what that involves:
 The API key is held only in request headers and never logged.
 """
 
+# 📘 [בלי SDK] זה החלק הגדול ביותר שנאלצנו לכתוב ביד. כאן מדברים עם השרת של Anthropic ישירות דרך
+# 📘 HTTP: בונים כותרות, שולחים JSON, מפענחים שגיאות ומנסים שוב כשצריך.
+# 📘 [עם SDK] את כל הקובץ הזה ה-SDK עושה בשבילנו מאחורי הקלעים, ולכן בגרסה השנייה אין לו מקבילה
+# 📘 בכלל.
+
 from __future__ import annotations
 
 import os
@@ -24,11 +29,15 @@ import httpx
 
 from core.config import Settings
 
+# 📘 קודי HTTP שמשמעותם "תקלה זמנית, כדאי לנסות שוב": עומס (529), יותר מדי בקשות (429) ותקלות שרת
+# 📘 (5xx).
 _RETRYABLE_STATUS = frozenset({408, 409, 429, 500, 502, 503, 504, 529})
 _SPEND_CAP_CODE = "enforced_spend_limit_reached"
 _FALLBACK_BETA = "server-side-fallback-2026-07-01"
 
 
+# 📘 היררכיית שגיאות: לכל סוג תקלה מחלקה משלה. כך הקוד שמעלינו יודע להבדיל בין "נסה שוב" לבין
+# 📘 "הבקשה שגויה, אין טעם לנסות שוב".
 class APIError(Exception):
     """Base class for every failure talking to the API."""
 
@@ -86,6 +95,8 @@ class RateLimitError(APIError):
     retryable = True
 
 
+# 📘 מקרה מיוחד: 429 שנגרם כי נגמר התקציב בחשבון. הוא נראה כמו עומס, אבל ניסיון חוזר לא יעזור,
+# 📘 ולכן לא מנסים.
 class SpendLimitError(RateLimitError):
     """A 429 caused by the account's spend cap. Retrying cannot succeed."""
 
@@ -100,6 +111,7 @@ class ServerError(APIError):
     retryable = True
 
 
+# 📘 מתרגמים תשובת שגיאה מהשרת (קוד HTTP ו-JSON) לאחת המחלקות שלמעלה.
 def _error_for(response: httpx.Response) -> APIError:
     """Map an HTTP error response onto the taxonomy above."""
     status = response.status_code
@@ -155,6 +167,8 @@ class MessagesClient:
         self._settings = settings
         self._sleep = sleep
         self._rng = rng or random.Random()
+        # 📘 שלוש כותרות חובה בכל בקשה: מפתח ה-API, גרסת ה-API וסוג התוכן. המפתח נמצא רק כאן ולא
+        # 📘 נכתב ללוג אף פעם.
         headers = {
             "x-api-key": key,
             "anthropic-version": settings.api_version,
@@ -178,6 +192,8 @@ class MessagesClient:
     def close(self) -> None:
         self._http.close()
 
+    # 📘 הפונקציה המרכזית: שולחת בקשה אחת. אם היא נכשלה בגלל תקלה זמנית, מחכים ומנסים שוב, עד
+    # 📘 מספר ניסיונות מוגבל.
     def create_message(self, body: dict[str, Any]) -> dict[str, Any]:
         """Send one Messages request, retrying transient failures."""
         attempts = self._settings.api_max_retries + 1
@@ -207,6 +223,7 @@ class MessagesClient:
         assert last_error is not None
         raise last_error
 
+    # 📘 השרת יכול לומר לנו במפורש אם לנסות שוב, בכותרת x-should-retry. אם הוא אמר, מקשיבים לו.
     @staticmethod
     def _should_retry(error: APIError, response: httpx.Response) -> bool:
         override = response.headers.get("x-should-retry")
@@ -216,6 +233,9 @@ class MessagesClient:
             return False
         return error.retryable
 
+    # 📘 Exponential backoff עם jitter: כל ניסיון מחכה בערך פי 2 מהקודם, עם רכיב אקראי, כדי שהרבה
+    # 📘 לקוחות לא יחזרו לשרת באותה שנייה. אם השרת ביקש זמן המתנה מסוים (retry-after), מכבדים
+    # 📘 אותו.
     def _backoff(self, attempt: int, retry_after: float | None) -> float:
         """Exponential backoff with full jitter, or the server's `retry-after` if larger."""
         ceiling = min(

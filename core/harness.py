@@ -6,6 +6,10 @@ code that differs between the two implementations is the orchestration itself.
 That is what makes the comparison controlled.
 """
 
+# 📘 הקובץ שהופך את ההשוואה להוגנת: כל מה שקורה מסביב ללולאה (עותק הפרויקט, ההגנות, התקציב, הלוג
+# 📘 והציון) נמצא כאן ומשותף לשני האיגנטים.
+# 📘 ההבדל היחיד בין האיגנטים הוא ה-Engine שמועבר ל-run_case.
+
 from __future__ import annotations
 
 import time
@@ -39,6 +43,8 @@ class Engine(Protocol):
     def solve(self, toolbox: Toolbox, budget: Budget, tracer: Tracer) -> EngineOutcome: ...
 
 
+# 📘 הסדר: יוצרים עותק של הפרויקט, "מצלמים" את קבצי הטסט, מריצים את האיגנט, ובסוף בודקים בעצמנו
+# 📘 את התוצאה.
 def run_case(
     case_id: str,
     repo: Path,
@@ -59,6 +65,7 @@ def run_case(
         started = time.perf_counter()
         try:
             outcome = engine.solve(toolbox, budget, tracer)
+        # 📘 אם יש באג באיגנט עצמו, הריצה נחשבת כושלת, אבל שאר ההשוואה ממשיכה.
         except Exception as exc:  # an engine bug is a failed run, not a crashed benchmark
             outcome = EngineOutcome(RunStatus.ERROR, error=f"{type(exc).__name__}: {exc}")
         elapsed = time.perf_counter() - started

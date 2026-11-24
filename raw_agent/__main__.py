@@ -4,6 +4,9 @@ python -m raw_agent benchmark/cases/01_off_by_one/repo
 python -m raw_agent path/to/repo --trace trace.jsonl
 """
 
+# 📘 נקודת ההפעלה מהטרמינל. כאן מחברים את החלקים: לקוח HTTP, ספק Anthropic, הלולאה, ו-run_case
+# 📘 שמריץ ובודק.
+
 from __future__ import annotations
 
 import argparse

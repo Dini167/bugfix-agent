@@ -7,6 +7,9 @@ agent adapts them to its own wire format, which keeps the tools identical
 across implementations.
 """
 
+# 📘 חמשת הכלים של האיגנט. שני האיגנטים משתמשים בדיוק באותו קוד, וההבדל הוא רק איך כל אחד מהם
+# 📘 "מחבר" אותם למודל.
+
 from __future__ import annotations
 
 import difflib
@@ -38,6 +41,8 @@ class ToolSpec:
     input_schema: dict[str, Any]
 
 
+# 📘 פלט ארוך מדי, למשל שגיאה ענקית, נחתך כדי שלא ימלא את הזיכרון של המודל. שומרים את ההתחלה ואת
+# 📘 הסוף, כי שם בדרך כלל המידע החשוב.
 def truncate(text: str, limit: int) -> str:
     """Trim `text` to `limit` characters, keeping head and tail, with a marker."""
     if len(text) <= limit:
@@ -48,6 +53,7 @@ def truncate(text: str, limit: int) -> str:
     return f"{text[:head]}\n... [truncated {omitted:,} characters] ...\n{text[-tail:]}"
 
 
+# 📘 מריצים pytest וקוראים את התוצאות מקובץ XML, ולא מהטקסט שמודפס למסך, כי זה אמין יותר.
 def run_test_suite(
     workspace: Workspace, settings: Settings, target: str | None = None
 ) -> TestOutcome:
@@ -186,6 +192,8 @@ class Toolbox:
 
     # --------------------------------------------------------------- dispatch
 
+    # 📘 נקודת הכניסה היחידה להפעלת כלי: בודקת שהפרמטרים תקינים, מריצה, ובכל מקרה מחזירה תשובה
+    # 📘 ולא קורסת.
     def dispatch(self, name: str, arguments: Mapping[str, Any]) -> ToolResult:
         """Validate arguments and run a tool. Never raises."""
         handler = self._handlers.get(name)
@@ -284,6 +292,8 @@ class Toolbox:
         suffix = f"\n... [{total - limit} more matches]" if total > limit else ""
         return ToolResult("\n".join(matches) + suffix)
 
+    # 📘 הכלי היחיד שמשנה קוד. שלוש הגנות: אסור לגעת בקובץ טסט, הטקסט הישן חייב להופיע בדיוק פעם
+    # 📘 אחת, ומחזירים diff כדי שהמודל יראה מה השתנה.
     def edit_file(self, path: str, old: str, new: str) -> ToolResult:
         target = self._ws.resolve(path)
         rel = self._ws.relative(target)

@@ -11,6 +11,8 @@ This module is what actually guarantees it:
 * `Budget` caps iterations, tokens and cost.
 """
 
+# 📘 ההגנות שלא תלויות בכך שהמודל "יקשיב": גם אם ינסה, הקוד לא ייתן לו.
+
 from __future__ import annotations
 
 import hashlib
@@ -29,6 +31,7 @@ _PROTECTED_NAMES = frozenset(
 _PROTECTED_DIRS = frozenset({"tests", "test"})
 
 
+# 📘 אילו קבצים אסור לגעת בהם: טסטים וקבצי ההגדרות של pytest. שינוי שלהם היה מאפשר "לרמות".
 def is_protected(relative_path: str) -> bool:
     """Return True if the agent must not create, edit or delete this path."""
     path = PurePosixPath(relative_path)
@@ -46,6 +49,8 @@ def _hash(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+# 📘 לפני הריצה מחשבים hash לכל קובץ מוגן, ובסוף משווים. כך נתפס כל שינוי, גם בדרך שלא חשבנו
+# 📘 עליה.
 @dataclass(frozen=True, slots=True)
 class ProtectedSnapshot:
     """Content hashes of every protected file in a workspace."""
@@ -93,6 +98,7 @@ def estimate_cost(usage: Usage, pricing: ModelPricing) -> float:
     ) * per_token
 
 
+# 📘 שלוש תקרות: מספר סבבים, מספר טוקנים ועלות בדולרים.
 @dataclass(slots=True)
 class Budget:
     """Tracks spend for one run and enforces the configured caps."""

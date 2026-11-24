@@ -9,6 +9,8 @@ A case counts as resolved only if all of the following hold:
 The agent's own "RESOLVED" in its report is recorded but never trusted.
 """
 
+# 📘 הבודק העצמאי: הוא מריץ את הטסטים מחדש בעצמו. מה שהמודל כתב בדוח לא משפיע על הציון.
+
 from __future__ import annotations
 
 from core.config import Settings

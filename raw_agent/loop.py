@@ -8,6 +8,10 @@ pieces it delegates to: budgets (`core.guards`), tools and their safety checks
 (`raw_agent.providers`).
 """
 
+# 📘 [בלי SDK] זו הלולאה שכתבנו ביד, וזה הלב של ההשוואה.
+# 📘 [עם SDK] בגרסה השנייה כל הלולאה הזו מוחלפת בקריאה אחת לספרייה, והספרייה מריצה את הלולאה
+# 📘 בעצמה.
+
 from __future__ import annotations
 
 from core.guards import Budget, BudgetExceeded
@@ -25,6 +29,8 @@ _CONTINUE_AFTER_TRUNCATION = (
 )
 
 
+# 📘 Engine הוא החוזה המשותף לשני האיגנטים (מוגדר ב-core/harness.py). כל איגנט מממש רק את solve,
+# 📘 וכל השאר משותף.
 class RawEngine:
     """Implements `core.harness.Engine` with an explicit loop over a `ModelProvider`."""
 
@@ -35,10 +41,15 @@ class RawEngine:
 
     def solve(self, toolbox: Toolbox, budget: Budget, tracer: Tracer) -> EngineOutcome:
         conversation = self._provider.new_conversation(SYSTEM_PROMPT, toolbox.specs())
+        # 📘 פותחים שיחה: הוראות המערכת, רשימת הכלים והמשימה עצמה.
         conversation.add_user_text(TASK_PROMPT)
 
         try:
+            # 📘 הלולאה: 1. שואלים את המודל. 2. אם ביקש כלים, מריצים אותם ומחזירים לו את התוצאות.
+            # 📘 3. חוזרים על זה עד שהוא מסיים או שנגמר התקציב.
             while True:
+                # 📘 לפני כל סבב בודקים שלא עברנו את מספר הסבבים המותר. אם עברנו, נזרקת
+                # 📘 BudgetExceeded והלולאה נעצרת.
                 budget.record_iteration()
                 with tracer.span("model_call", iteration=budget.iterations) as span:
                     turn = conversation.send()
@@ -52,13 +63,20 @@ class RawEngine:
                         tool_calls=[c.name for c in turn.tool_calls],
                         text=turn.text,
                     )
+                # 📘 אחרי כל תשובה מוסיפים את הטוקנים לחשבון, ובודקים את תקרת הטוקנים ואת תקרת
+                # 📘 העלות.
                 budget.record_usage(turn.usage)
 
+                # 📘 המקרה הנפוץ: המודל ביקש להפעיל כלי אחד או יותר.
                 if turn.stop_reason is StopReason.TOOL_USE and turn.tool_calls:
                     results = [self._run_tool(call, toolbox, tracer) for call in turn.tool_calls]
                     conversation.add_tool_results(results)
+                # 📘 המודל סיים וכתב דוח. שימי לב שמחזירים UNRESOLVED: מי שקובע אם הבאג תוקן הוא
+                # 📘 הבודק העצמאי, ולא המודל.
                 elif turn.stop_reason is StopReason.END_TURN:
                     return EngineOutcome(RunStatus.UNRESOLVED, final_report=turn.text)
+                # 📘 התשובה נחתכה באמצע. אם היא נחתכה בתוך בקשה לכלי, לא מריצים אותה, כי הפרמטרים
+                # 📘 עלולים להיות חלקיים.
                 elif turn.stop_reason is StopReason.MAX_TOKENS:
                     if turn.tool_calls:
                         # A cut-off tool call may carry truncated input. Answer every
@@ -88,6 +106,7 @@ class RawEngine:
                         final_report=turn.text,
                         error=f"unexpected stop reason: {turn.raw_stop_reason}",
                     )
+        # 📘 [בלי SDK] את הטיפול בעצירה ובשגיאות כתבנו בעצמנו. ב-SDK חלק מזה מובנה.
         except BudgetExceeded as exc:
             tracer.event("budget_exceeded", reason=str(exc))
             return EngineOutcome(RunStatus.BUDGET_EXCEEDED, error=str(exc))

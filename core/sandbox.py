@@ -11,6 +11,8 @@ boundary against hostile code; for untrusted repositories, run the whole
 benchmark inside a container.
 """
 
+# 📘 כל ריצה עובדת על עותק זמני של הפרויקט, כך שהמקור לא נפגע לעולם.
+
 from __future__ import annotations
 
 import os
@@ -74,6 +76,8 @@ class Workspace:
     def cleanup(self) -> None:
         shutil.rmtree(self._root.parent, ignore_errors=True)
 
+    # 📘 הגנה מפני "בריחה": כל נתיב שהמודל נותן נבדק שהוא נשאר בתוך התיקייה, גם אם ניסה ../ או
+    # 📘 קישור (symlink) החוצה.
     def resolve(self, relative: str | os.PathLike[str] = ".") -> Path:
         """Resolve a model-supplied path, refusing anything outside the root.
 
@@ -99,6 +103,7 @@ class Workspace:
         The child gets a minimal environment (no API keys or other secrets) and
         its own process group, so a timeout kills everything it spawned.
         """
+        # 📘 התהליך שרץ מקבל סביבה מינימלית בלבד, בלי מפתח ה-API ובלי סודות אחרים.
         env = {
             "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
             "HOME": str(self._root),
@@ -118,6 +123,7 @@ class Workspace:
         try:
             stdout, stderr = proc.communicate(timeout=timeout_s)
             return CommandResult(proc.returncode, stdout, stderr, timed_out=False)
+        # 📘 אם תהליך נתקע, הורגים אותו ואת כל התהליכים שהוא פתח.
         except subprocess.TimeoutExpired:
             os.killpg(proc.pid, signal.SIGKILL)
             stdout, stderr = proc.communicate()

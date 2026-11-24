@@ -11,6 +11,12 @@ model) means one new file implementing these two protocols, plus a config value.
 The loop does not change.
 """
 
+# 📘 [בלי SDK] זו "שכבת המודל המוחלפת". הלולאה מכירה רק את הממשק הזה, ולא יודעת איזה מודל עומד
+# 📘 מאחוריו.
+# 📘 בזכות זה אפשר בעתיד לחבר מודל חינמי: כותבים קובץ אחד שמממש את שני הממשקים כאן, והלולאה לא
+# 📘 משתנה.
+# 📘 [עם SDK] ב-Claude Agent SDK אין שכבה כזו, כי הוא עובד רק עם Claude.
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -21,6 +27,8 @@ from core.tools import ToolSpec
 from core.types import ToolResult, Usage
 
 
+# 📘 למה המודל הפסיק לכתוב: סיים (END_TURN), מבקש להפעיל כלי (TOOL_USE), נגמר לו המקום
+# 📘 (MAX_TOKENS) או סירב (REFUSAL).
 class StopReason(StrEnum):
     END_TURN = "end_turn"
     TOOL_USE = "tool_use"
@@ -36,6 +44,7 @@ class ToolCall:
     arguments: dict[str, Any]
 
 
+# 📘 תשובה אחת של המודל, בפורמט אחיד שלא תלוי בספק.
 @dataclass(slots=True)
 class ModelTurn:
     """One model response, normalized."""
@@ -49,6 +58,7 @@ class ModelTurn:
     extra: dict[str, Any] = field(default_factory=dict)
 
 
+# 📘 Protocol ב-Python הוא "חוזה": כל מחלקה שיש לה את המתודות האלה מתאימה, גם בלי לרשת ממנה.
 class Conversation(Protocol):
     """A provider-owned transcript for one run."""
 

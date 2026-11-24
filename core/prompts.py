@@ -4,6 +4,8 @@ Any change here applies to both implementations by construction, which keeps
 the comparison honest: neither agent can be prompt-tuned to beat the other.
 """
 
+# 📘 ההוראות למודל. אותו טקסט בדיוק לשני האיגנטים, כדי שאף אחד מהם לא יקבל יתרון.
+
 from __future__ import annotations
 
 SYSTEM_PROMPT = """\

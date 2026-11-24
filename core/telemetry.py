@@ -4,6 +4,8 @@ One line per event, so traces can be grepped, diffed between the two agents,
 and loaded into any analysis tool. Never pass secrets (API keys, headers) in.
 """
 
+# 📘 לוג: כל קריאה למודל וכל הפעלת כלי נכתבות כשורת JSON, עם זמן, טוקנים ועלות.
+
 from __future__ import annotations
 
 import json

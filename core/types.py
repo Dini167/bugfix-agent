@@ -4,6 +4,9 @@ Both agent implementations return the same `RunResult`, which is what lets the
 benchmark treat them interchangeably and compare them fairly.
 """
 
+# 📘 מבני הנתונים המשותפים. RunResult הוא התוצאה ששני האיגנטים מחזירים, וזה מה שמאפשר להשוות
+# 📘 ביניהם.
+
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
@@ -81,6 +84,7 @@ class TestOutcome:
         )
 
 
+# 📘 איך ריצה יכולה להיגמר: תוקן, לא תוקן, נגמר התקציב, ניסה לשנות טסטים, או שגיאה.
 class RunStatus(StrEnum):
     """How a single agent run ended."""
 

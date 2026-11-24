@@ -12,6 +12,9 @@ Wire-format responsibilities handled here, by hand:
 * normalizing `stop_reason` and `usage`.
 """
 
+# 📘 [בלי SDK] כאן מתרגמים בין הפורמט האחיד שלנו לבין הפורמט המדויק ש-Anthropic מצפה לו.
+# 📘 [עם SDK] ה-SDK מכיר את הפורמט הזה בעצמו, ואנחנו לא כותבים ממנו אף שורה.
+
 from __future__ import annotations
 
 import json
@@ -32,6 +35,7 @@ _STOP_REASONS = {
 }
 
 
+# 📘 ממירים את הגדרת הכלי הכללית שלנו למבנה שה-API מקבל: שם, תיאור ו-JSON Schema של הפרמטרים.
 def to_api_tools(specs: list[ToolSpec]) -> list[dict[str, Any]]:
     return [
         {"name": s.name, "description": s.description, "input_schema": s.input_schema}
@@ -52,6 +56,9 @@ class AnthropicConversation:
     def add_user_text(self, text: str) -> None:
         self.messages.append({"role": "user", "content": [{"type": "text", "text": text}]})
 
+    # 📘 חוק של ה-API: כל תוצאות הכלים של אותו סבב חוזרות בהודעה אחת, וכל תוצאה מצביעה על הבקשה
+    # 📘 שלה לפי tool_use_id.
+    # 📘 אם כלי נכשל, מסמנים is_error, כדי שהמודל ידע שזו שגיאה ולא פלט רגיל.
     def add_tool_results(self, results: list[tuple[ToolCall, ToolResult]]) -> None:
         blocks: list[dict[str, Any]] = []
         for call, result in results:
@@ -66,6 +73,9 @@ class AnthropicConversation:
         # All results for one turn go in one user message.
         self.messages.append({"role": "user", "content": blocks})
 
+    # 📘 גוף הבקשה. effort קובע כמה המודל "חושב" לפני שהוא עונה. cache_control מפעיל מטמון, כך
+    # 📘 שבכל סבב השיחה הקודמת נקראת במחיר זול בהרבה.
+    # 📘 fallbacks: אם המודל מסרב מסיבות בטיחות, השרת מנסה מודל חלופי במקום להחזיר סירוב.
     def request_body(self) -> dict[str, Any]:
         body: dict[str, Any] = {
             "model": self._settings.model,
@@ -84,6 +94,8 @@ class AnthropicConversation:
         data = self._client.create_message(self.request_body())
         content: list[dict[str, Any]] = data.get("content", [])
         # Return the assistant content exactly as received.
+        # 📘 חוק חשוב: את מה שהמודל ענה מחזירים לשיחה בדיוק כמו שהוא, כולל בלוקים של "חשיבה".
+        # 📘 שינוי שלהם יגרום לשגיאה.
         self.messages.append({"role": "assistant", "content": content})
 
         texts: list[str] = []
@@ -94,6 +106,7 @@ class AnthropicConversation:
                 texts.append(block.get("text", ""))
             elif kind == "tool_use":
                 arguments = block.get("input", {})
+                # 📘 תמיד מפענחים JSON בעזרת json.loads, ולא בהשוואת טקסט.
                 if isinstance(arguments, str):  # defensive: never string-match JSON
                     arguments = json.loads(arguments)
                 calls.append(ToolCall(id=block["id"], name=block["name"], arguments=arguments))

@@ -7,8 +7,8 @@ built twice on one shared foundation, so the two can be compared fairly:
 - `raw_agent/`: the Anthropic Messages API over raw HTTP, with a hand-written loop.
 - `sdk_agent/`: the Claude Agent SDK.
 
-> Status: phase 1 of 4 (shared foundation and benchmark) is complete. The two
-> agents, the benchmark run and the full write-up follow.
+> Status: phases 1 and 2 of 4 are complete (shared foundation, benchmark, and the
+> raw agent). The SDK agent, the benchmark run and the full write-up follow.
 
 ## What is here so far
 
@@ -22,6 +22,28 @@ built twice on one shared foundation, so the two can be compared fairly:
 | `core/telemetry.py` | JSONL trace of every model and tool call |
 | `core/config.py` | Every tunable in one place, overridable with `BUGFIX_*` environment variables |
 | `benchmark/cases/` | 10 bug cases, from easy to hard, including two cross-file bugs and one rounding trap |
+
+| `raw_agent/client.py` | Hand-written Messages API client: headers, error taxonomy, jittered retries |
+| `raw_agent/providers/` | Swappable model layer; Anthropic today, any provider by adding one file |
+| `raw_agent/loop.py` | The hand-written agent loop |
+| `core/harness.py` | Everything around the loop, shared by both agents |
+
+## Run the raw agent
+
+```bash
+export ANTHROPIC_API_KEY=...
+python -m raw_agent benchmark/cases/01_off_by_one/repo --trace trace.jsonl
+```
+
+## Learning comments
+
+Lines that start with `# 📘` are Hebrew explanations for studying the code,
+tagged `[בלי SDK]` / `[עם SDK]` where the two implementations differ. Remove them
+all at once, leaving the code unchanged:
+
+```bash
+make strip-explanations
+```
 
 ## Run the checks
 

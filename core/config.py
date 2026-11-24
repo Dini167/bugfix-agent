@@ -5,6 +5,8 @@ Values come from defaults below, overridable by environment variables with the
 read the same `Settings`, so a benchmark run compares like with like.
 """
 
+# 📘 כל ההגדרות במקום אחד. אפשר לשנות כל אחת מהן בלי לגעת בקוד, דרך משתנה סביבה שמתחיל ב-BUGFIX_.
+
 from __future__ import annotations
 
 import os
@@ -24,6 +26,7 @@ class ModelPricing:
 
 # Anthropic first-party list prices (USD / 1M tokens). Verify against the
 # published pricing page before relying on cost figures; update here only.
+# 📘 מחירון לכל מיליון טוקנים, לפי מודל. משמש לחישוב העלות של כל ריצה.
 PRICING: dict[str, ModelPricing] = {
     "claude-sonnet-5-5": ModelPricing(2.00, 10.00, 0.10, 2.50),
     "claude-opus-5-5": ModelPricing(4.00, 20.00, 0.20, 5.00),
