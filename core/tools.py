@@ -78,7 +78,7 @@ def run_test_suite(
         runner = detect_runner(workspace.root)
     except UnsupportedRepository as exc:
         return TestOutcome(0, 0, 1, 0, exit_code=-1, timed_out=False, output=str(exc))
-    with tempfile.TemporaryDirectory(prefix="bugfix-report-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="bugfix-report-", ignore_cleanup_errors=True) as tmp:
         report_dir = Path(tmp)
         argv = runner.command(workspace.root, target, report_dir)
         try:

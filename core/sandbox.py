@@ -127,7 +127,20 @@ class Workspace:
             "npm_config_update_notifier": "false",
             "npm_config_fund": "false",
             "NO_COLOR": "1",
+            "PYTHONUTF8": "1",
         }
+        if os.name == "nt":
+            # Windows programs need these to start at all (Python, npm, Go).
+            # 📘 ב-Windows תוכנות לא מצליחות לעלות בלי המשתנים האלה, ולכן מעבירים אותם.
+            # 📘 אין בהם סודות.
+            for name in ("SYSTEMROOT", "SYSTEMDRIVE", "WINDIR", "COMSPEC", "PATHEXT", "APPDATA"):
+                if name in os.environ:
+                    env[name] = os.environ[name]
+            env["USERPROFILE"] = env["HOME"]
+            env["LOCALAPPDATA"] = str(cache / "localappdata")
+            env["TEMP"] = env["TMP"] = str(cache / "tmp")
+            (cache / "localappdata").mkdir(exist_ok=True)
+            (cache / "tmp").mkdir(exist_ok=True)
         # Toolchain locations that live under the real home directory.
         defaults = {
             "RUSTUP_HOME": "~/.rustup",
@@ -150,20 +163,35 @@ class Workspace:
         """
         # 📘 התהליך שרץ מקבל סביבה מינימלית בלבד, בלי מפתח ה-API ובלי סודות אחרים.
         env = self._environment()
+        # On Windows, tools such as npm are .cmd files that Popen only finds by full path.
+        program = shutil.which(argv[0], path=env["PATH"]) or argv[0]
         proc = subprocess.Popen(
-            argv,
+            [program, *argv[1:]],
             cwd=self._root,
             env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            start_new_session=True,
+            encoding="utf-8",
+            errors="replace",
+            start_new_session=os.name != "nt",
         )
         try:
             stdout, stderr = proc.communicate(timeout=timeout_s)
             return CommandResult(proc.returncode, stdout, stderr, timed_out=False)
         # 📘 אם תהליך נתקע, הורגים אותו ואת כל התהליכים שהוא פתח.
         except subprocess.TimeoutExpired:
-            os.killpg(proc.pid, signal.SIGKILL)
+            _kill_tree(proc)
             stdout, stderr = proc.communicate()
-            return CommandResult(-signal.SIGKILL, stdout, stderr, timed_out=True)
+            return CommandResult(-9, stdout, stderr, timed_out=True)
+
+
+def _kill_tree(proc: subprocess.Popen[str]) -> None:
+    """Kill a process and everything it started."""
+    if os.name == "nt":
+        subprocess.run(
+            ["taskkill", "/T", "/F", "/PID", str(proc.pid)], capture_output=True, check=False
+        )
+        proc.kill()
+    else:
+        os.killpg(proc.pid, signal.SIGKILL)

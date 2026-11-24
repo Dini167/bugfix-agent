@@ -34,6 +34,8 @@ class Display:
         self.stream: TextIO = stream or sys.stdout
         self.verbose = verbose
         self.color = self.stream.isatty() and "NO_COLOR" not in os.environ
+        if self.color and os.name == "nt":
+            os.system("")  # turns on color support in the Windows console
 
     def _paint(self, text: str, code: str) -> str:
         return f"\033[{code}m{text}\033[0m" if self.color else text
@@ -314,6 +316,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # A Windows console may not be able to show every character in a patch or report.
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure:
+            reconfigure(errors="replace")
     args = build_parser().parse_args(argv)
     display = Display(verbose=getattr(args, "verbose", False))
     commands = {"check": cmd_check, "fix": cmd_fix, "benchmark": cmd_benchmark}
