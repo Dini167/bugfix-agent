@@ -16,6 +16,13 @@ settings, and the shared `Budget` is still updated from the message stream, so
 budget accounting is identical across both implementations.
 """
 
+# 📘 [עם SDK] זו כל הגרסה השנייה. שימי לב מה אין כאן: אין לקוח HTTP, אין טיפול בפורמט של ה-API,
+# 📘 אין ניהול של היסטוריית השיחה ואין לולאה. את כל אלה ה-SDK עושה בשבילנו.
+# 📘 [בלי SDK] בגרסה הראשונה כל אלה נכתבו ביד, בארבעה קבצים: client.py, providers/base.py,
+# 📘 providers/anthropic.py ו-loop.py.
+# 📘 מה שכן נשאר לנו לעשות כאן: לחבר את הכלים המשותפים ל-SDK, לכבות את הכלים המובנים שלו, ולקרוא
+# 📘 את ההודעות שהוא מחזיר.
+
 from __future__ import annotations
 
 import asyncio
@@ -44,6 +51,7 @@ from core.telemetry import Tracer
 from core.tools import Toolbox
 from core.types import RunStatus, Usage
 
+# 📘 [עם SDK] ה-SDK מקבל כלים מותאמים אישית דרך "שרת MCP" שרץ בתוך התהליך שלנו. זה השם של השרת.
 SERVER_NAME = "bugfix"
 
 QueryFn = Callable[..., AsyncIterator[Message]]
@@ -52,11 +60,15 @@ QueryFn = Callable[..., AsyncIterator[Message]]
 _BUDGET_SUBTYPES = frozenset({"error_max_turns", "error_max_budget_usd"})
 
 
+# 📘 ה-SDK נותן לכל כלי MCP שם בפורמט mcp__<שרת>__<כלי>. צריך את השם הזה כדי לאשר את הכלים מראש.
 def mcp_tool_name(name: str) -> str:
     """The name the SDK exposes an in-process MCP tool under."""
     return f"mcp__{SERVER_NAME}__{name}"
 
 
+# 📘 [עם SDK] עוטפים כל אחד מחמשת הכלים המשותפים ככלי של ה-SDK. אותו קוד ואותו JSON Schema כמו
+# 📘 בגרסה הראשונה, רק במעטפת אחרת.
+# 📘 [בלי SDK] שם ההמרה לפורמט של ה-API נכתבה ביד ב-to_api_tools.
 def build_tools(toolbox: Toolbox, tracer: Tracer) -> list[SdkMcpTool[Any]]:
     """Wrap each shared tool as an SDK MCP tool. Same code, same schemas."""
     tools: list[SdkMcpTool[Any]] = []
@@ -70,6 +82,8 @@ def build_tools(toolbox: Toolbox, tracer: Tracer) -> list[SdkMcpTool[Any]]:
                 return result.output, result.is_error
 
             # Tools run subprocesses (pytest), so keep them off the event loop.
+            # 📘 ה-SDK עובד בצורה אסינכרונית (async). הכלים מריצים pytest, שלוקח זמן, ולכן מריצים
+            # 📘 אותם ב-thread נפרד כדי לא לתקוע את ה-SDK.
             output, is_error = await asyncio.to_thread(run)
             response: dict[str, Any] = {"content": [{"type": "text", "text": output}]}
             if is_error:
@@ -80,6 +94,8 @@ def build_tools(toolbox: Toolbox, tracer: Tracer) -> list[SdkMcpTool[Any]]:
     return tools
 
 
+# 📘 [עם SDK] כאן נמצא רוב ה"קוד" של הגרסה השנייה: הגדרות. כל שורה מחליפה משהו שבגרסה הראשונה
+# 📘 כתבנו בעצמנו או שלא היה צריך שם.
 def build_options(
     settings: Settings, toolbox: Toolbox, tools: list[SdkMcpTool[Any]]
 ) -> ClaudeAgentOptions:
@@ -89,13 +105,19 @@ def build_options(
         system_prompt=SYSTEM_PROMPT,
         model=settings.model,
         effort=settings.effort,  # type: ignore[arg-type]
+        # 📘 מכבים את כל הכלים המובנים של ה-SDK (Bash, Read, Edit ועוד), כדי שלשני האיגנטים יהיו
+        # 📘 בדיוק אותן יכולות. בלי זה ההשוואה לא הוגנת.
         tools=[],  # disable every built-in tool
         mcp_servers={SERVER_NAME: server},
         strict_mcp_config=True,  # ignore any MCP servers configured on the host
         allowed_tools=[mcp_tool_name(t.name) for t in tools],
+        # 📘 כל כלי שלא אושר מראש נחסם אוטומטית, בלי לשאול.
         permission_mode="dontAsk",  # anything not pre-approved is denied
+        # 📘 לא טוענים הגדרות מהמחשב שעליו רצים, כך שההתנהגות זהה בכל מחשב.
         setting_sources=[],  # do not load user/project settings or CLAUDE.md
         cwd=str(toolbox.workspace_root),
+        # 📘 [עם SDK] תקרות מובנות של ה-SDK: מספר סבבים ותקציב בדולרים. [בלי SDK] בגרסה הראשונה
+        # 📘 את זה בדקנו בעצמנו בכל סבב.
         max_turns=settings.max_iterations,
         max_budget_usd=settings.max_cost_usd,
     )
@@ -111,11 +133,14 @@ def _usage(raw: dict[str, Any] | None) -> Usage:
     )
 
 
+# 📘 המימוש של אותו חוזה Engine כמו בגרסה הראשונה. ה-harness לא יודע ולא אכפת לו איזה מנוע רץ.
 class SdkEngine:
     """Implements `core.harness.Engine` on top of `claude_agent_sdk.query`."""
 
     name = "sdk_agent"
 
+    # 📘 query הוא הפונקציה של ה-SDK שמריצה את כל הלולאה. מקבלים אותה כפרמטר כדי שבטסטים אפשר
+    # 📘 יהיה להחליף אותה בגרסה מדומה, בלי מפתח API.
     def __init__(self, query_fn: QueryFn = query) -> None:
         self.query_fn = query_fn
         self.tools: dict[str, SdkMcpTool[Any]] = {}
@@ -132,8 +157,13 @@ class SdkEngine:
         texts: list[str] = []
         result: ResultMessage | None = None
         try:
+            # 📘 [עם SDK] זו כל "הלולאה": קריאה אחת. ה-SDK מריץ את הלולאה בעצמו, ואנחנו רק קוראים
+            # 📘 את ההודעות שהוא מזרים.
+            # 📘 [בלי SDK] בגרסה הראשונה זה היה while True עם טיפול בכל סוג של stop_reason.
             stream = self.query_fn(prompt=TASK_PROMPT, options=options)
             try:
+                # 📘 שני סוגי הודעות מעניינים אותנו: AssistantMessage היא תשובה של המודל,
+                # 📘 ו-ResultMessage היא הסיכום של כל הריצה.
                 async for message in stream:
                     if isinstance(message, AssistantMessage):
                         self._on_assistant(message, budget, tracer, seen_messages, texts)
@@ -141,6 +171,8 @@ class SdkEngine:
                         result = message
             finally:
                 # Stopping early (e.g. a budget cap) must also stop the SDK's subprocess.
+                # 📘 אם עצרנו באמצע (למשל כי נגמר התקציב), סוגרים את הזרם, וזה עוצר גם את התהליך
+                # 📘 של ה-SDK.
                 aclose = getattr(stream, "aclose", None)
                 if aclose is not None:
                     await aclose()
@@ -155,6 +187,8 @@ class SdkEngine:
             return EngineOutcome(RunStatus.ERROR, error="SDK stream ended without a result")
         return self._outcome(result, budget, texts)
 
+    # 📘 ה-SDK לפעמים מחלק תשובה אחת של המודל לכמה הודעות. סופרים כל תשובה פעם אחת לפי
+    # 📘 message_id, כדי שהספירה תהיה זהה לגרסה הראשונה.
     @staticmethod
     def _on_assistant(
         message: AssistantMessage,
@@ -186,10 +220,14 @@ class SdkEngine:
         )
         budget.record_usage(usage)
 
+    # 📘 מתרגמים את הסיכום של ה-SDK לתוצאה המשותפת שלנו. גם כאן הסטטוס הוא לכל היותר UNRESOLVED,
+    # 📘 ומי שקובע אם הבאג תוקן הוא הבודק העצמאי.
     @staticmethod
     def _outcome(result: ResultMessage, budget: Budget, texts: list[str]) -> EngineOutcome:
         # The result's usage is the SDK's authoritative total for the whole run.
         if result.usage:
+            # 📘 [עם SDK] ה-SDK מחזיר בסוף סיכום מדויק של כל הטוקנים. [בלי SDK] בגרסה הראשונה
+            # 📘 סכמנו אותם בעצמנו מכל תשובה.
             budget.usage = _usage(result.usage)
         report = result.result or (texts[-1] if texts else "")
         if result.subtype in _BUDGET_SUBTYPES:

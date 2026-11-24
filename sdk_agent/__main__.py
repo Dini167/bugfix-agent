@@ -4,6 +4,9 @@ python -m sdk_agent benchmark/cases/01_off_by_one/repo
 python -m sdk_agent path/to/repo --trace trace.jsonl
 """
 
+# 📘 נקודת ההפעלה מהטרמינל. השוו לגרסה הראשונה: אין כאן לקוח HTTP ואין ספק מודל, רק SdkEngine
+# 📘 ו-run_case.
+
 from __future__ import annotations
 
 import argparse

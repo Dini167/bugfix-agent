@@ -7,8 +7,8 @@ built twice on one shared foundation, so the two can be compared fairly:
 - `raw_agent/`: the Anthropic Messages API over raw HTTP, with a hand-written loop.
 - `sdk_agent/`: the Claude Agent SDK.
 
-> Status: phases 1 and 2 of 4 are complete (shared foundation, benchmark, and the
-> raw agent). The SDK agent, the benchmark run and the full write-up follow.
+> Status: phases 1 to 3 of 4 are complete (shared foundation, benchmark, raw
+> agent, SDK agent). The benchmark run and the full write-up follow.
 
 ## What is here so far
 
@@ -27,13 +27,18 @@ built twice on one shared foundation, so the two can be compared fairly:
 | `raw_agent/providers/` | Swappable model layer; Anthropic today, any provider by adding one file |
 | `raw_agent/loop.py` | The hand-written agent loop |
 | `core/harness.py` | Everything around the loop, shared by both agents |
+| `sdk_agent/agent.py` | The same agent on the Claude Agent SDK: shared tools as in-process MCP tools, built-ins off |
 
-## Run the raw agent
+## Run an agent on one case
 
 ```bash
 export ANTHROPIC_API_KEY=...
-python -m raw_agent benchmark/cases/01_off_by_one/repo --trace trace.jsonl
+python -m raw_agent benchmark/cases/01_off_by_one/repo --trace raw.jsonl
+python -m sdk_agent benchmark/cases/01_off_by_one/repo --trace sdk.jsonl
 ```
+
+The SDK agent runs the Claude Code CLI that ships inside the `claude-agent-sdk`
+package; nothing else needs installing.
 
 ## Learning comments
 
