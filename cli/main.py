@@ -2,6 +2,7 @@
 
     bugfix check  [PATH]                 see what is failing; no API key needed
     bugfix fix    [PATH] [--engine raw|sdk] [--fallback MODEL] [--yes | --dry-run]
+    bugfix ui                            the same, in your browser
     bugfix benchmark [--engine raw|sdk|both] [--cases 01 11] [--repeats 3]
 
 `fix` never touches your project until it has shown you the exact change and
@@ -203,6 +204,17 @@ def finish(result: RunResult, repo: Path, args: argparse.Namespace, display: Dis
     return 0
 
 
+# 📘 פותח את הממשק הגרפי בדפדפן. Streamlit מריץ שרת קטן על המחשב שלך, ורק את רואה אותו.
+def cmd_ui(args: argparse.Namespace, display: Display) -> int:
+    import subprocess
+
+    app = Path(__file__).resolve().parent.parent / "ui" / "app.py"
+    display.title("Opening the bugfix agent in your browser. Press Ctrl+C here to stop it.")
+    argv = [sys.executable, "-m", "streamlit", "run", str(app)]
+    argv += ["--browser.gatherUsageStats", "false", "--server.port", str(args.port)]
+    return subprocess.call(argv)
+
+
 def cmd_benchmark(args: argparse.Namespace, display: Display) -> int:
     from benchmark.catalog import load_cases
     from benchmark.run import RESULTS_DIR, run_benchmark
@@ -308,6 +320,9 @@ def build_parser() -> argparse.ArgumentParser:
     mode.add_argument("-y", "--yes", action="store_true", help="Apply without asking.")
     mode.add_argument("--dry-run", action="store_true", help="Show the fix, never apply it.")
 
+    ui = sub.add_parser("ui", help="Open the agent in your browser.")
+    ui.add_argument("--port", type=int, default=8501)
+
     bench = sub.add_parser("benchmark", help="Compare both agents on the bug set.")
     bench.add_argument("--engine", choices=["raw", "sdk", "both"], default="both")
     bench.add_argument("--cases", nargs="*", help="Case id prefixes, e.g. 01 11.")
@@ -323,7 +338,7 @@ def main(argv: list[str] | None = None) -> int:
             reconfigure(errors="replace")
     args = build_parser().parse_args(argv)
     display = Display(verbose=getattr(args, "verbose", False))
-    commands = {"check": cmd_check, "fix": cmd_fix, "benchmark": cmd_benchmark}
+    commands = {"check": cmd_check, "fix": cmd_fix, "ui": cmd_ui, "benchmark": cmd_benchmark}
     try:
         return commands[args.command](args, display)
     except KeyboardInterrupt:

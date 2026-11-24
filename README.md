@@ -40,7 +40,9 @@ The comparison is in [COMPARISON.md](COMPARISON.md) (Hebrew:
 
 ## Quickstart
 
-You need Python 3.11 or later and an Anthropic API key.
+You need Python 3.11 or later and an Anthropic API key. On Windows, if `python`
+only prints "Python", use `py` instead (`py -m pip install -e .`), and if the
+`bugfix` command is not found, use `py -m cli` in its place.
 
 ```bash
 pip install -e .
@@ -50,7 +52,11 @@ bugfix check ./my-project                # what is failing? (no key needed)
 bugfix fix ./my-project                  # find the bug, show the fix, ask before applying
 ```
 
-That is the whole workflow. Everything else is optional:
+That is the whole workflow. Prefer a window to a terminal? `bugfix ui` opens the
+same agent in your browser: pick a sample bug or your own folder, watch each step
+live, compare both agents side by side, and apply the fix with one click.
+
+Everything else is optional:
 
 | Command | What it does |
 |---|---|
@@ -65,6 +71,7 @@ That is the whole workflow. Everything else is optional:
 | `bugfix fix --model ollama:<model>` | Runs on a free model only. |
 | `bugfix fix --trace run.jsonl` | Writes every model call and tool call to a file. |
 | `bugfix fix -v` | Shows the agent's full notes instead of a one-line summary. |
+| `bugfix ui` | Opens the agent in your browser (built with Streamlit). |
 | `bugfix benchmark` | Runs both agents on the 13 built-in bugs and writes a comparison table. |
 
 `PATH` defaults to the current directory.
@@ -162,6 +169,7 @@ The full list is in `core/config.py`.
 
 ```text
 cli/          the `bugfix` command
+ui/           the browser interface (`bugfix ui`): logic.py does the work, app.py draws it
 core/         everything both agents share
   tools.py        the five tools: run_tests, list_files, read_file, search_code, edit_file
   sandbox.py      the private copy, path containment, timeouts, clean environment
@@ -177,7 +185,7 @@ raw_agent/    the agent without an SDK
 sdk_agent/    the agent on the Claude Agent SDK
   agent.py        our tools as in-process MCP tools, built-ins off, message handling
 benchmark/    13 bugs in Python, JavaScript, Go and Rust, and the comparison runner
-tests/        207 tests, none of which need an API key
+tests/        212 tests, none of which need an API key
 ```
 
 Both agents plug into the same `run_case()` in `core/harness.py`. The only thing

@@ -13,6 +13,7 @@ dependencies = [
     "pytest>=8",
     "PyYAML>=6",
     "claude-agent-sdk>=0.1",
+    "streamlit>=1.40",
 ]
 
 [project.scripts]
@@ -22,7 +23,7 @@ bugfix = "cli.main:main"
 dev = ["ruff>=0.6", "mypy>=1.10", "types-PyYAML"]
 
 [tool.setuptools.packages.find]
-include = ["core*", "raw_agent*", "sdk_agent*", "benchmark*", "cli*"]
+include = ["core*", "raw_agent*", "sdk_agent*", "benchmark*", "cli*", "ui*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

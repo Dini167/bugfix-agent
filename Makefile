@@ -14,7 +14,7 @@ lint:
 # use 3.12+ syntax; the package itself is checked against its 3.11 floor.
 typecheck:
 	mypy core benchmark raw_agent sdk_agent cli scripts
-	mypy --python-version 3.13 tests
+	mypy --python-version 3.13 tests ui
 
 check: lint typecheck test
 
