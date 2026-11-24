@@ -24,7 +24,15 @@ from core.config import Settings
 from core.tools import ToolSpec
 from core.types import ToolResult, Usage
 from raw_agent.client import MessagesClient
-from raw_agent.providers.base import ModelTurn, StopReason, ToolCall
+from raw_agent.providers.base import (
+    AssistantReply,
+    History,
+    ModelTurn,
+    StopReason,
+    ToolCall,
+    ToolResults,
+    UserText,
+)
 
 _STOP_REASONS = {
     "end_turn": StopReason.END_TURN,
@@ -52,6 +60,24 @@ class AnthropicConversation:
         self._system = system
         self._tools = to_api_tools(tools)
         self.messages: list[dict[str, Any]] = []
+
+    # 📘 בונים מחדש שיחה שהתחילה אצל ספק אחר (למשל אחרי מעבר לגיבוי). כאן אין בלוקים של "חשיבה",
+    # 📘 כי ספק אחר כתב את התשובות, וזה מותר.
+    def replay(self, history: History) -> None:
+        for entry in history:
+            if isinstance(entry, UserText):
+                self.add_user_text(entry.text)
+            elif isinstance(entry, ToolResults):
+                self.add_tool_results(list(entry.results))
+            elif isinstance(entry, AssistantReply):
+                content: list[dict[str, Any]] = []
+                if entry.text:
+                    content.append({"type": "text", "text": entry.text})
+                content += [
+                    {"type": "tool_use", "id": c.id, "name": c.name, "input": c.arguments}
+                    for c in entry.tool_calls
+                ]
+                self.messages.append({"role": "assistant", "content": content})
 
     def add_user_text(self, text: str) -> None:
         self.messages.append({"role": "user", "content": [{"type": "text", "text": text}]})
@@ -130,11 +156,14 @@ class AnthropicConversation:
 
 
 class AnthropicProvider:
-    name = "anthropic"
-
     def __init__(self, client: MessagesClient, settings: Settings) -> None:
         self._client = client
         self._settings = settings
+        self.name = settings.model
 
-    def new_conversation(self, system: str, tools: list[ToolSpec]) -> AnthropicConversation:
-        return AnthropicConversation(self._client, self._settings, system, tools)
+    def new_conversation(
+        self, system: str, tools: list[ToolSpec], history: History = ()
+    ) -> AnthropicConversation:
+        conversation = AnthropicConversation(self._client, self._settings, system, tools)
+        conversation.replay(history)
+        return conversation

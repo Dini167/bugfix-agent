@@ -122,6 +122,8 @@ def _error_for(response: httpx.Response) -> APIError:
     try:
         body = response.json()
         error = body.get("error", {})
+        if isinstance(error, str):  # some OpenAI-compatible servers send a bare string
+            error = {"message": error}
         error_type = error.get("type")
         message = error.get("message", message)
         details = error.get("details") or {}
@@ -149,36 +151,27 @@ def _error_for(response: httpx.Response) -> APIError:
     return APIError(message, **kwargs)
 
 
-class MessagesClient:
-    """POST /v1/messages with retries. One instance per run or per benchmark."""
+# 📘 לקוח HTTP כללי עם ניסיונות חוזרים. גם הלקוח של Anthropic וגם הלקוח של המודלים החינמיים
+# 📘 (providers/openai_compat.py) בנויים עליו, כך שכל לוגיקת הניסיונות החוזרים כתובה פעם אחת.
+class JsonHTTPClient:
+    """POST JSON with retries, shared by every provider's client."""
 
     def __init__(
         self,
         settings: Settings,
-        api_key: str | None = None,
+        base_url: str,
+        headers: dict[str, str],
         *,
         transport: httpx.BaseTransport | None = None,
         sleep: Callable[[float], None] = time.sleep,
         rng: random.Random | None = None,
     ) -> None:
-        key = api_key or os.environ.get("ANTHROPIC_API_KEY")
-        if not key:
-            raise AuthenticationError("ANTHROPIC_API_KEY is not set")
         self._settings = settings
         self._sleep = sleep
         self._rng = rng or random.Random()
-        # 📘 שלוש כותרות חובה בכל בקשה: מפתח ה-API, גרסת ה-API וסוג התוכן. המפתח נמצא רק כאן ולא
-        # 📘 נכתב ללוג אף פעם.
-        headers = {
-            "x-api-key": key,
-            "anthropic-version": settings.api_version,
-            "content-type": "application/json",
-        }
-        if settings.refusal_fallback:
-            headers["anthropic-beta"] = _FALLBACK_BETA
         self._http = httpx.Client(
-            base_url=settings.api_base_url,
-            headers=headers,
+            base_url=base_url,
+            headers={"content-type": "application/json", **headers},
             timeout=httpx.Timeout(settings.api_timeout_s, connect=10.0),
             transport=transport,
         )
@@ -194,13 +187,13 @@ class MessagesClient:
 
     # 📘 הפונקציה המרכזית: שולחת בקשה אחת. אם היא נכשלה בגלל תקלה זמנית, מחכים ומנסים שוב, עד
     # 📘 מספר ניסיונות מוגבל.
-    def create_message(self, body: dict[str, Any]) -> dict[str, Any]:
-        """Send one Messages request, retrying transient failures."""
+    def post_json(self, path: str, body: dict[str, Any]) -> dict[str, Any]:
+        """Send one request, retrying transient failures."""
         attempts = self._settings.api_max_retries + 1
         last_error: APIError | None = None
         for attempt in range(attempts):
             try:
-                response = self._http.post("/v1/messages", json=body)
+                response = self._http.post(path, json=body)
             except httpx.TimeoutException as exc:
                 last_error = APITimeoutError(f"request timed out: {exc}")
                 retry_after: float | None = None
@@ -223,7 +216,6 @@ class MessagesClient:
         assert last_error is not None
         raise last_error
 
-    # 📘 השרת יכול לומר לנו במפורש אם לנסות שוב, בכותרת x-should-retry. אם הוא אמר, מקשיבים לו.
     @staticmethod
     def _should_retry(error: APIError, response: httpx.Response) -> bool:
         override = response.headers.get("x-should-retry")
@@ -245,6 +237,34 @@ class MessagesClient:
         if retry_after is not None:
             delay = max(delay, min(retry_after, self._settings.retry_max_delay_s))
         return delay
+
+
+class MessagesClient(JsonHTTPClient):
+    """POST /v1/messages with retries. One instance per run or per benchmark."""
+
+    def __init__(
+        self,
+        settings: Settings,
+        api_key: str | None = None,
+        *,
+        transport: httpx.BaseTransport | None = None,
+        sleep: Callable[[float], None] = time.sleep,
+        rng: random.Random | None = None,
+    ) -> None:
+        key = api_key or os.environ.get("ANTHROPIC_API_KEY")
+        if not key:
+            raise AuthenticationError("ANTHROPIC_API_KEY is not set")
+        # 📘 שתי כותרות חובה בכל בקשה: מפתח ה-API וגרסת ה-API. המפתח נמצא רק כאן ולא נכתב ללוג
+        # 📘 אף פעם.
+        headers = {"x-api-key": key, "anthropic-version": settings.api_version}
+        if settings.refusal_fallback:
+            headers["anthropic-beta"] = _FALLBACK_BETA
+        super().__init__(
+            settings, settings.api_base_url, headers, transport=transport, sleep=sleep, rng=rng
+        )
+
+    def create_message(self, body: dict[str, Any]) -> dict[str, Any]:
+        return self.post_json("/v1/messages", body)
 
 
 def _parse_retry_after(response: httpx.Response) -> float | None:

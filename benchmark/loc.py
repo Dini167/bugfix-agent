@@ -18,6 +18,10 @@ LAYERS: dict[str, dict[str, list[str]]] = {
         "Provider interface": ["raw_agent/providers/base.py"],
         "Wire format (Anthropic)": ["raw_agent/providers/anthropic.py"],
         "Agent loop": ["raw_agent/loop.py"],
+        "Free models and fallback (no SDK equivalent)": [
+            "raw_agent/providers/openai_compat.py",
+            "raw_agent/providers/fallback.py",
+        ],
     },
     "sdk_agent": {
         "SDK wiring and message handling": ["sdk_agent/agent.py"],

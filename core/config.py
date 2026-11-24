@@ -34,11 +34,22 @@ PRICING: dict[str, ModelPricing] = {
 }
 
 
+FREE = ModelPricing(0.0, 0.0, 0.0, 0.0)
+
+
+def is_free_model(model: str) -> bool:
+    """Free models are named `<host>:<model>`; Claude models have no host prefix."""
+    return ":" in model
+
+
 @dataclass(frozen=True, slots=True)
 class Settings:
     """Run configuration shared by both agents and the benchmark."""
 
     model: str = "claude-sonnet-5-5"
+    # Backup models for the raw agent, tried in order if the main one fails,
+    # comma-separated: "groq:<model>,ollama:<model>". See raw_agent/providers.
+    fallback_models: str = ""
     max_tokens_per_response: int = 16_000
     # Reasoning depth. "medium" is the recommended starting point for agentic
     # coding on current Sonnet models; raise it if the benchmark shows headroom.
@@ -90,7 +101,13 @@ class Settings:
         return replace(base, **overrides)  # type: ignore[arg-type]
 
     @property
+    def fallbacks(self) -> list[str]:
+        return [m.strip() for m in self.fallback_models.split(",") if m.strip()]
+
+    @property
     def pricing(self) -> ModelPricing:
+        if is_free_model(self.model):
+            return FREE
         try:
             return PRICING[self.model]
         except KeyError as exc:

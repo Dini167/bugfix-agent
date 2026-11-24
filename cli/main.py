@@ -1,7 +1,7 @@
 """`bugfix`: one command for everything.
 
     bugfix check  [PATH]                 see what is failing; no API key needed
-    bugfix fix    [PATH] [--engine raw|sdk] [--yes | --dry-run]
+    bugfix fix    [PATH] [--engine raw|sdk] [--fallback MODEL] [--yes | --dry-run]
     bugfix benchmark [--engine raw|sdk|both] [--cases 01 11] [--repeats 3]
 
 `fix` never touches your project until it has shown you the exact change and
@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Any, TextIO
 
 from core.changes import apply_changes
-from core.config import Settings
+from core.config import Settings, is_free_model
 from core.languages import UnsupportedRepository, detect_runner
 from core.sandbox import Workspace
 from core.tools import run_test_suite
@@ -68,6 +68,10 @@ class Display:
                 self.line(f"  thinking: {shown}")
         elif kind == "tool_call":
             self.line("  " + describe_tool_call(event))
+        elif kind == "fallback":
+            reason = str(event.get("error", "")).split(" | ")[0]
+            self.bad(f"  ! {event.get('from')} failed ({reason})")
+            self.bad(f"    continuing on {event.get('to')}")
 
 
 def describe_tool_call(event: dict[str, Any]) -> str:
@@ -119,7 +123,7 @@ def cmd_check(args: argparse.Namespace, display: Display) -> int:
 
 
 def cmd_fix(args: argparse.Namespace, display: Display) -> int:
-    from cli.engines import open_engine
+    from cli.engines import EngineSetupError, open_engine
     from core.harness import run_case
 
     repo = args.path.resolve()
@@ -128,13 +132,12 @@ def cmd_fix(args: argparse.Namespace, display: Display) -> int:
         settings = _with(settings, model=args.model)
     if args.max_cost is not None:
         settings = _with(settings, max_cost_usd=args.max_cost)
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        display.bad("ANTHROPIC_API_KEY is not set.")
-        display.line("Create a key at https://console.anthropic.com, then run:")
-        display.line("  export ANTHROPIC_API_KEY=sk-ant-...     (macOS / Linux)")
-        display.line(
-            '  setx ANTHROPIC_API_KEY "sk-ant-..."     (Windows, then reopen the terminal)'
-        )
+    if args.fallback:
+        settings = _with(settings, fallback_models=",".join(args.fallback))
+    if args.engine == "sdk" and settings.fallbacks:
+        display.info("Note: backup models work with the raw agent only; the SDK runs on Claude.")
+        settings = _with(settings, fallback_models="")
+    if not _keys_present(settings, display):
         return 2
     try:
         detect_runner(repo)
@@ -142,12 +145,17 @@ def cmd_fix(args: argparse.Namespace, display: Display) -> int:
         display.bad(str(exc))
         return 2
 
-    display.title(f"Fixing {repo.name} with the {args.engine} agent ({settings.model})")
+    models = " -> ".join([settings.model, *settings.fallbacks])
+    display.title(f"Fixing {repo.name} with the {args.engine} agent ({models})")
     display.info("Working on a private copy; your files are not touched yet.")
-    with open_engine(args.engine, settings) as engine:
-        result = run_case(
-            repo.name, repo, engine, settings, trace_path=args.trace, listener=display.on_event
-        )
+    try:
+        with open_engine(args.engine, settings) as engine:
+            result = run_case(
+                repo.name, repo, engine, settings, trace_path=args.trace, listener=display.on_event
+            )
+    except EngineSetupError as exc:
+        display.bad(str(exc))
+        return 2
     return finish(result, repo, args, display)
 
 
@@ -196,10 +204,10 @@ def finish(result: RunResult, repo: Path, args: argparse.Namespace, display: Dis
 def cmd_benchmark(args: argparse.Namespace, display: Display) -> int:
     from benchmark.catalog import load_cases
     from benchmark.run import RESULTS_DIR, run_benchmark
+    from cli.engines import EngineSetupError
 
     settings = Settings.from_env()
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        display.bad("ANTHROPIC_API_KEY is not set; the benchmark calls the model.")
+    if not _keys_present(settings, display):
         return 2
     engines = ["raw", "sdk"] if args.engine == "both" else [args.engine]
     cases = load_cases(only=args.cases)
@@ -215,7 +223,11 @@ def cmd_benchmark(args: argparse.Namespace, display: Display) -> int:
             f"${result.cost_usd:.4f}  {result.status.value}"
         )
 
-    run_benchmark(engines, cases, args.repeats, settings, on_result=report)
+    try:
+        run_benchmark(engines, cases, args.repeats, settings, on_result=report)
+    except EngineSetupError as exc:
+        display.bad(str(exc))
+        return 2
     display.good(f"Results written to {RESULTS_DIR / 'results.md'}")
     return 0
 
@@ -227,6 +239,33 @@ def _with(settings: Settings, **changes: Any) -> Settings:
     from dataclasses import replace
 
     return replace(settings, **changes)
+
+
+# 📘 בודקים מראש שיש מפתח לכל מודל בשרשרת, ומסבירים בדיוק מה חסר, במקום להיכשל באמצע הריצה.
+def _keys_present(settings: Settings, display: Display) -> bool:
+    from raw_agent.providers.openai_compat import HOSTS, split_model
+
+    missing: list[str] = []
+    for model in [settings.model, *settings.fallbacks]:
+        if not is_free_model(model):
+            needed: str | None = "ANTHROPIC_API_KEY"
+        else:
+            try:
+                needed = HOSTS[split_model(model)[0]].key_env
+            except ValueError as exc:
+                display.bad(str(exc))
+                return False
+        if needed and not os.environ.get(needed) and needed not in missing:
+            missing.append(needed)
+    for name in missing:
+        display.bad(f"{name} is not set.")
+        if name == "ANTHROPIC_API_KEY":
+            display.line("Create a key at https://console.anthropic.com, then run:")
+        else:
+            display.line("Create a free key on that service's website, then run:")
+        display.line(f"  export {name}=...     (macOS / Linux)")
+        display.line(f'  setx {name} "..."     (Windows, then reopen the terminal)')
+    return not missing
 
 
 def _confirm(question: str, display: Display) -> bool:
@@ -251,7 +290,15 @@ def build_parser() -> argparse.ArgumentParser:
     fix = sub.add_parser("fix", help="Find and fix the bug, then ask before applying it.")
     fix.add_argument("path", nargs="?", type=Path, default=Path())
     fix.add_argument("--engine", choices=["raw", "sdk"], default="raw")
-    fix.add_argument("--model", help="Model to use (default from settings).")
+    fix.add_argument(
+        "--model", help="Model to use: a Claude model, or a free one such as ollama:<model>."
+    )
+    fix.add_argument(
+        "--fallback",
+        action="append",
+        metavar="MODEL",
+        help="Backup model if the main one fails, e.g. groq:<model>. Repeat for more.",
+    )
     fix.add_argument("--max-cost", type=float, help="Stop if a run would cost more (USD).")
     fix.add_argument("--trace", type=Path, help="Write a step-by-step JSONL trace here.")
     fix.add_argument("-v", "--verbose", action="store_true", help="Show the agent's full notes.")

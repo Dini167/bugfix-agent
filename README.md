@@ -61,6 +61,8 @@ That is the whole workflow. Everything else is optional:
 | `bugfix fix --engine sdk` | Uses the Claude Agent SDK version instead of the raw one. Same tools, same result format. |
 | `bugfix fix --max-cost 0.50` | Stops the run if it would cost more than $0.50. |
 | `bugfix fix --model claude-opus-5-5` | Uses another model. |
+| `bugfix fix --fallback groq:<model>` | Adds a backup model, used if the main one fails. Repeat for more. |
+| `bugfix fix --model ollama:<model>` | Runs on a free model only. |
 | `bugfix fix --trace run.jsonl` | Writes every model call and tool call to a file. |
 | `bugfix fix -v` | Shows the agent's full notes instead of a one-line summary. |
 | `bugfix benchmark` | Runs both agents on the 13 built-in bugs and writes a comparison table. |
@@ -87,6 +89,33 @@ with the command that runs your tests:
 test_command: "bundle exec rspec"
 language: ruby          # optional, shown in reports
 ```
+
+## Free models and backup models
+
+The raw agent can run on free models, and can fall back to them when Claude
+fails: no credit left, a spend cap, an invalid key, or an outage that outlasts
+the retries. The run then continues on the next model from the same point,
+instead of starting over.
+
+```bash
+bugfix fix --fallback groq:<model>                       # Claude first, then Groq
+bugfix fix --fallback groq:<model> --fallback ollama:<model>
+bugfix fix --model ollama:<model>                        # a local model only
+```
+
+A free model is written `<host>:<model>`. The model must support tool calling.
+
+| Host | What it is | Key |
+|---|---|---|
+| `ollama` | Runs on your own computer, fully free and offline. Install from ollama.com, then `ollama pull <model>`. | none |
+| `groq` | Hosted, with a free tier. | `GROQ_API_KEY` |
+| `openrouter` | Hosted; models whose name ends in `:free` cost nothing. | `OPENROUTER_API_KEY` |
+| `gemini` | Google's models, with a free tier. | `GEMINI_API_KEY` |
+
+Free models are usually weaker than Claude at finding bugs, so they make the
+most sense as a backup. Their tokens count toward the token cap and cost $0.
+This works with the raw agent only: the Claude Agent SDK runs on Claude alone,
+which is one of the differences [COMPARISON.md](COMPARISON.md) measures.
 
 ## What it will and will not do
 
@@ -120,6 +149,7 @@ that starts with `BUGFIX_`:
 | Variable | Default |
 |---|---|
 | `BUGFIX_MODEL` | `claude-sonnet-5-5` |
+| `BUGFIX_FALLBACK_MODELS` | none; comma-separated, e.g. `groq:<model>,ollama:<model>` |
 | `BUGFIX_EFFORT` | `medium` |
 | `BUGFIX_MAX_ITERATIONS` | `15` |
 | `BUGFIX_MAX_COST_USD` | `2.0` |
@@ -142,12 +172,12 @@ core/         everything both agents share
   prompts.py      one system prompt, used verbatim by both agents
 raw_agent/    the agent without an SDK
   client.py       HTTP, auth, error types, retries with backoff
-  providers/      the model layer; Anthropic today, another provider is one new file
+  providers/      the model layer: Anthropic, free models (OpenAI-compatible), fallback chain
   loop.py         the agent loop
 sdk_agent/    the agent on the Claude Agent SDK
   agent.py        our tools as in-process MCP tools, built-ins off, message handling
 benchmark/    13 bugs in Python, JavaScript, Go and Rust, and the comparison runner
-tests/        193 tests, none of which need an API key
+tests/        207 tests, none of which need an API key
 ```
 
 Both agents plug into the same `run_case()` in `core/harness.py`. The only thing

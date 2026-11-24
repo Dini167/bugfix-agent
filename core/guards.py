@@ -148,10 +148,9 @@ class Budget:
     settings: Settings
     iterations: int = 0
     usage: Usage = field(default_factory=Usage)
-
-    @property
-    def cost_usd(self) -> float:
-        return estimate_cost(self.usage, self.settings.pricing)
+    # Priced per call, because one run can move between models (see
+    # raw_agent/providers/fallback.py), and free models cost nothing.
+    cost_usd: float = 0.0
 
     def record_iteration(self) -> None:
         """Count one model turn. Raises before a turn that would exceed the cap."""
@@ -159,9 +158,18 @@ class Budget:
             raise BudgetExceeded(f"iteration limit reached ({self.settings.max_iterations})")
         self.iterations += 1
 
-    def record_usage(self, usage: Usage) -> None:
-        """Add a model call's usage, then raise if a token or cost cap is crossed."""
+    def set_total(self, usage: Usage) -> None:
+        """Replace the running count with an authoritative total for the whole run."""
+        self.usage = usage
+        self.cost_usd = estimate_cost(usage, self.settings.pricing)
+
+    def record_usage(self, usage: Usage, pricing: ModelPricing | None = None) -> None:
+        """Add a model call's usage, then raise if a token or cost cap is crossed.
+
+        `pricing` defaults to the configured model's prices.
+        """
         self.usage.add(usage)
+        self.cost_usd += estimate_cost(usage, pricing or self.settings.pricing)
         if self.usage.total_tokens > self.settings.max_total_tokens:
             raise BudgetExceeded(
                 f"token limit exceeded ({self.usage.total_tokens:,} > "

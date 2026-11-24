@@ -10,14 +10,15 @@ Agent SDK. Any difference in behavior is therefore caused by that layer alone.
 
 | | `raw_agent` (no SDK) | `sdk_agent` (Claude Agent SDK) |
 |---|---|---|
-| Code we own, excluding comments and docstrings | **377 lines, 4 files** | **149 lines, 1 file** |
+| Code we own, excluding comments and docstrings | **438 lines, 4 files** (plus 252 for free models and fallback) | **149 lines, 1 file** |
 | Agent loop | Written by hand (`while True` over stop reasons) | Provided (`query()` drives it) |
 | HTTP, auth headers, API versioning | Written by hand | Provided |
 | Retries and error taxonomy | Written by hand (backoff with jitter, `retry-after`, `x-should-retry`) | Provided |
 | Message and tool-result wire format | Written by hand | Provided |
 | Prompt caching | Explicit (`cache_control` on every request) | Handled by the SDK |
 | Turn and cost caps | Our `Budget`, checked every iteration | SDK `max_turns` / `max_budget_usd`, plus our `Budget` |
-| Model providers | Any, behind `ModelProvider` (one file per provider) | Claude only |
+| Model providers | Claude plus free models (Ollama, Groq, OpenRouter, Gemini) behind `ModelProvider` | Claude only |
+| Backup when the model fails | Any chain, e.g. Claude then a free model, switching mid-run | Only Claude's own server-side refusal fallback |
 | Process model | One Python process, synchronous | Python plus the bundled Claude Code CLI as a subprocess, async |
 | Testing without an API key | HTTP-level: a scripted in-process API (`httpx.MockTransport`) | Stream-level: a scripted replacement for `query()` |
 | Visibility | Every request and response is ours to log | Messages the SDK chooses to emit |
@@ -30,13 +31,18 @@ benchmark run.
 
 | Implementation | Layer | Lines |
 |---|---|---|
-| raw_agent | HTTP client, errors, retries (`client.py`) | 167 |
-| raw_agent | Provider interface (`providers/base.py`) | 34 |
-| raw_agent | Wire format for Anthropic (`providers/anthropic.py`) | 94 |
-| raw_agent | Agent loop (`loop.py`) | 82 |
-| **raw_agent** | **Total** | **377** |
+| raw_agent | HTTP client, errors, retries (`client.py`) | 181 |
+| raw_agent | Provider interface and neutral history (`providers/base.py`) | 50 |
+| raw_agent | Wire format for Anthropic (`providers/anthropic.py`) | 121 |
+| raw_agent | Agent loop (`loop.py`) | 86 |
+| **raw_agent** | **Total for the Claude agent** | **438** |
+| raw_agent | Free models and fallback (`providers/openai_compat.py`, `providers/fallback.py`) | 252 |
 | sdk_agent | SDK wiring and message handling (`agent.py`) | 149 |
-| shared | Tools, sandbox, guards, grading, languages, harness (`core/`) | 902 |
+| shared | Tools, sandbox, guards, grading, languages, harness (`core/`) | 904 |
+
+About 60 of the 438 lines exist so that a run can move between providers (a
+provider-neutral history, and replaying it in the Anthropic format). Without
+the fallback feature the raw agent was 377 lines.
 
 Two observations matter more than the totals:
 
@@ -128,6 +134,35 @@ retried; and a 429 caused by the account's spend cap is not retried, because
 waiting cannot fix it. With the SDK, all of this happens inside the CLI, and we
 handle only `ClaudeSDKError` and the result's `subtype`.
 
+### Backup models: what owning the loop buys
+
+This is the one feature the SDK version cannot have. Because the raw agent's
+loop talks to a `ModelProvider` and not to Claude directly, it can chain
+providers. If Claude fails in a way retries cannot fix (no credit left, a spend
+cap, an invalid key, an outage that outlasts the retries), the run continues on
+the next model in the chain, from the same point:
+
+```bash
+bugfix fix --fallback groq:<model> --fallback ollama:<model>
+```
+
+```python
+# raw_agent/providers/fallback.py (condensed)
+try:
+    turn = self._current.send()
+except APIError:
+    self._index += 1                       # next provider in the chain
+    self._current = self.provider.new_conversation(
+        self._system, self._tools, self._history)   # replay what was said so far
+```
+
+Three things made this possible, and each is a line count the SDK version does
+not pay but also cannot use: a second wire format (OpenAI-compatible, which most
+free hosts speak), a provider-neutral record of the conversation, and cost
+accounting per call, because one run can now be billed at two prices (free
+tokens cost nothing). The SDK offers only server-side fallback between Claude
+models when a request is refused.
+
 ### Where the `anthropic` client library fits
 
 There is a middle layer between the two that this project deliberately does not
@@ -171,7 +206,7 @@ not deterministic. Paste the summary table here once it exists.
 | Time to a working agent | Slower: you build and test the plumbing | Faster: configuration plus message handling |
 | Control over each request | Total: every field, header and retry is yours | Limited to the options the SDK exposes |
 | Debugging | Full request/response visibility | Through the SDK's messages and logs |
-| Switching model providers | One new provider file | Not possible; Claude only |
+| Switching model providers | Built: free models and a fallback chain, 252 lines | Not possible; Claude only |
 | Dependencies and footprint | `httpx` | The SDK plus a bundled CLI binary, run as a subprocess |
 | Keeping up with API changes | Your job (headers, new fields, new stop reasons) | The SDK's job |
 | Built-in capabilities | Only what you write | File, shell, web tools, subagents, sessions, hooks (deliberately unused here) |
@@ -184,10 +219,10 @@ retries, caching and context management, and you write only what is specific to
 your problem: here, 149 lines.
 
 **Build on the raw API** when you need to own the loop: a provider-independent
-agent (this project's raw agent can run on another model by adding one file),
-unusual control flow, a minimal dependency footprint, or full visibility into
-every request for audit or debugging. The price is roughly 230 more lines of
-plumbing that must be written, tested and maintained.
+agent (this project's raw agent runs on free models and falls back to them when
+Claude fails), unusual control flow, a minimal dependency footprint, or full
+visibility into every request for audit or debugging. The price is roughly 290
+more lines of plumbing that must be written, tested and maintained.
 
 In both cases, the parts that decide whether the agent can be trusted (what it
 may touch, how much it may spend, and who decides whether it succeeded) are

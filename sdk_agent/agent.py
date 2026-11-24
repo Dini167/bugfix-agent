@@ -229,7 +229,7 @@ class SdkEngine:
         if result.usage:
             # 📘 [עם SDK] ה-SDK מחזיר בסוף סיכום מדויק של כל הטוקנים. [בלי SDK] בגרסה הראשונה
             # 📘 סכמנו אותם בעצמנו מכל תשובה.
-            budget.usage = _usage(result.usage)
+            budget.set_total(_usage(result.usage))
         report = result.result or (texts[-1] if texts else "")
         if result.subtype in _BUDGET_SUBTYPES:
             return EngineOutcome(

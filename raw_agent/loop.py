@@ -14,6 +14,7 @@ pieces it delegates to: budgets (`core.guards`), tools and their safety checks
 
 from __future__ import annotations
 
+from core.config import FREE, PRICING
 from core.guards import Budget, BudgetExceeded
 from core.harness import EngineOutcome
 from core.prompts import SYSTEM_PROMPT, TASK_PROMPT
@@ -65,7 +66,12 @@ class RawEngine:
                     )
                 # 📘 אחרי כל תשובה מוסיפים את הטוקנים לחשבון, ובודקים את תקרת הטוקנים ואת תקרת
                 # 📘 העלות.
-                budget.record_usage(turn.usage)
+                for switch in turn.extra.get("fallbacks", []):
+                    tracer.event("fallback", **switch)
+                # 📘 העלות מחושבת לפי המודל שענה בפועל. טוקנים של מודל חינמי נספרים בתקרת
+                # 📘 הטוקנים, אבל עולים 0.
+                pricing = FREE if turn.free else PRICING.get(turn.model)
+                budget.record_usage(turn.usage, pricing)
                 if turn.text:
                     tracer.event("model_text", text=turn.text)
 
