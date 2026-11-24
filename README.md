@@ -1,8 +1,113 @@
-# bugfix-agent
+<div dir="rtl">
 
-Point it at a project with failing tests. It finds the root cause, fixes it with
-the smallest change it can, proves the fix by running the full test suite, and
-shows you the exact change before anything touches your files.
+# bugfix-agent: איגנט שמתקן באגים
+
+[English](README.en.md) · עברית
+
+נותנים לו פרויקט שיש בו טסטים שנכשלים. הוא:
+
+1. מוצא את הסיבה לבאג,
+2. מתקן אותה בשינוי הכי קטן שאפשר,
+3. מוכיח שהתיקון עובד, על ידי הרצת כל הטסטים,
+4. ומראה לך בדיוק מה הוא שינה, **לפני** שהוא נוגע בקבצים שלך.
+
+אותו איגנט בנוי **פעמיים**, על אותו בסיס משותף, כדי שאפשר יהיה להשוות ביניהם שורה מול שורה:
+
+- **בלי SDK** (התיקייה `raw_agent/`): מדבר עם Claude בעצמו, ישירות דרך האינטרנט, עם לולאה שכתבנו לבד.
+- **עם SDK** (התיקייה `sdk_agent/`): משאיר את הלולאה ל-Claude Agent SDK.
+
+ההשוואה המלאה בין שניהם נמצאת ב-[COMPARISON.he.md](COMPARISON.he.md).
+מדריך שימוש מפורט, צעד אחר צעד, נמצא ב-[USAGE.he.md](USAGE.he.md).
+
+## התחלה מהירה
+
+צריך שני דברים:
+
+- **Python בגרסה 3.11 ומעלה.**
+- **מפתח API של Claude**, שיוצרים באתר console.anthropic.com.
+
+פותחים טרמינל בתיקייה של הפרויקט הזה ומריצים את הפקודות לפי הסדר.
+
+### ב-Windows
+
+אם `python --version` מדפיס רק "Python" בלי מספר, כותבים `py` במקום `python`, כמו כאן:
+
+</div>
+
+```bat
+py -m pip install -e .
+setx ANTHROPIC_API_KEY "sk-ant-..."
+```
+
+<div dir="rtl">
+
+אחרי `setx` סוגרים את הטרמינל ופותחים חדש, כדי שהמפתח ייקלט. ואז:
+
+</div>
+
+```bat
+py -m cli ui
+```
+
+<div dir="rtl">
+
+### ב-Mac או Linux
+
+</div>
+
+```bash
+pip install -e .
+export ANTHROPIC_API_KEY=sk-ant-...
+bugfix ui
+```
+
+<div dir="rtl">
+
+הפקודה האחרונה פותחת את האיגנט בדפדפן, בעברית. את המפתח לא כותבים בתוך הקוד ולא שולחים לאף אחד.
+
+## הממשק בדפדפן
+
+הדף בנוי משלושה שלבים:
+
+1. **מה לתקן?** בוחרים אחת משלוש אפשרויות:
+   - באג לדוגמה, מתוך 13 באגים שהכנו מראש.
+   - **העלאת תיקייה מהמחשב**: לוחצים, בוחרים את תיקיית הפרויקט, וזהו.
+   - הקלדת הנתיב לתיקייה במחשב.
+2. **לראות שיש באג:** הכפתור "הרץ את הטסטים" מראה כמה טסטים נכשלים. זה לא עולה כסף.
+3. **לתקן:** בוחרים איגנט (בלי SDK, עם SDK, או שניהם זה לצד זה) ולוחצים **מצא ותקן את הבאג**.
+
+בזמן העבודה רואים כל צעד של האיגנט. בסוף רואים:
+
+- האם הבאג תוקן, וכמה טסטים עוברים.
+- את השינוי המדויק בקוד: שורה עם `-` נמחקה, שורה עם `+` נוספה.
+- כמה צעדים זה לקח, כמה זמן, וכמה זה עלה.
+- דוח של האיגנט: מה היה הבאג ולמה התיקון נכון.
+
+ואז:
+
+- **אם העלית תיקייה:** מורידים את הפרויקט המתוקן כקובץ zip, או רק את השינוי.
+- **אם הקלדת נתיב:** לוחצים על כפתור אחד, והתיקון נכתב לקבצים שלך.
+
+בדף אין הגדרות לשנות. המודל והתקציב קבועים בקוד (ראו "הגדרות" למטה).
+
+![הממשק בדפדפן](screenshots/ui-preview.png)
+
+## בטרמינל, בלי דפדפן
+
+מי שמעדיפה טרמינל צריכה רק שתי פקודות. ב-Windows כותבים `py -m cli` במקום `bugfix`.
+
+</div>
+
+```bash
+bugfix check ./my-project      # מה נכשל? (בלי מפתח ובלי עלות)
+bugfix fix ./my-project        # מוצא את הבאג, מראה את התיקון, ושואל לפני שהוא מחיל אותו
+```
+
+<div dir="rtl">
+
+כך זה נראה:
+
+</div>
 
 ```text
 $ bugfix fix ./my-project
@@ -15,9 +120,6 @@ Runner: python/pytest  |  2 failing, 14 passing
   > editing src/pricing.py
   > running tests
 
-## Result
-Root cause: ...
-
 6 steps, 41s, about $0.0312
 Fixed: all 16 tests pass on the agent's copy.
 
@@ -28,201 +130,183 @@ Proposed change:
 Apply this change to your project? [y/N]
 ```
 
-The same agent is built **twice**, on one shared foundation, so the two can be
-compared line by line:
+<div dir="rtl">
 
-- `raw_agent/` talks to the Messages API over plain HTTP, with a hand-written loop.
-- `sdk_agent/` hands the loop to the Claude Agent SDK.
+עונים `y` כדי להחיל את התיקון, או Enter כדי לוותר. אם ויתרת, שום דבר לא השתנה.
 
-The comparison is in [COMPARISON.md](COMPARISON.md) (Hebrew:
-[COMPARISON.he.md](COMPARISON.he.md)). A usage guide in Hebrew is in
-[USAGE.he.md](USAGE.he.md).
+כל שאר האפשרויות הן רשות:
 
-## Quickstart
-
-You need Python 3.11 or later and an Anthropic API key. On Windows, if `python`
-only prints "Python", use `py` instead (`py -m pip install -e .`), and if the
-`bugfix` command is not found, use `py -m cli` in its place.
-
-```bash
-pip install -e .
-export ANTHROPIC_API_KEY=sk-ant-...      # Windows: setx ANTHROPIC_API_KEY "sk-ant-..."
-
-bugfix check ./my-project                # what is failing? (no key needed)
-bugfix fix ./my-project                  # find the bug, show the fix, ask before applying
-```
-
-That is the whole workflow. Prefer a window to a terminal? `bugfix ui` opens the
-same agent in your browser: pick a sample bug or your own folder, watch each step
-live, compare both agents side by side, and apply the fix with one click.
-
-Everything else is optional:
-
-| Command | What it does |
+| מה רוצים | פקודה |
 |---|---|
-| `bugfix check [PATH]` | Detects the language and test runner, runs the tests, reports what fails. Add `-v` to see the test output. |
-| `bugfix fix [PATH]` | Runs the agent on a private copy, then shows the change and asks before applying it. |
-| `bugfix fix --dry-run` | Shows the fix and never applies it. |
-| `bugfix fix --yes` | Applies the fix without asking (for scripts and CI). |
-| `bugfix fix --engine sdk` | Uses the Claude Agent SDK version instead of the raw one. Same tools, same result format. |
-| `bugfix fix --max-cost 0.50` | Stops the run if it would cost more than $0.50. |
-| `bugfix fix --model claude-opus-5-5` | Uses another model. |
-| `bugfix fix --fallback groq:<model>` | Adds a backup model, used if the main one fails. Repeat for more. |
-| `bugfix fix --model ollama:<model>` | Runs on a free model only. |
-| `bugfix fix --trace run.jsonl` | Writes every model call and tool call to a file. |
-| `bugfix fix -v` | Shows the agent's full notes instead of a one-line summary. |
-| `bugfix ui` | Opens the agent in your browser (built with Streamlit). |
-| `bugfix benchmark` | Runs both agents on the 13 built-in bugs and writes a comparison table. |
+| לראות מה נכשל, עם הפלט המלא של הטסטים | `bugfix check -v` |
+| רק לראות את התיקון, בלי להחיל אף פעם | `bugfix fix --dry-run` |
+| להחיל בלי לשאול (לסקריפטים) | `bugfix fix --yes` |
+| להריץ את הגרסה שבנויה עם ה-SDK | `bugfix fix --engine sdk` |
+| להגביל עלות, למשל לחצי דולר | `bugfix fix --max-cost 0.50` |
+| לבחור מודל אחר | `bugfix fix --model claude-opus-5-5` |
+| להוסיף מודל גיבוי, למקרה ש-Claude נכשל | `bugfix fix --fallback groq:<model>` |
+| לעבוד רק עם מודל חינמי במחשב שלך | `bugfix fix --model ollama:<model>` |
+| לשמור תיעוד של כל צעד לקובץ | `bugfix fix --trace run.jsonl` |
+| לראות את כל ההערות של האיגנט | `bugfix fix -v` |
+| לפתוח את הממשק בדפדפן | `bugfix ui` |
+| להשוות את שני האיגנטים על 13 הבאגים | `bugfix benchmark` |
 
-`PATH` defaults to the current directory.
+אם לא כותבים תיקייה, הכלי עובד על התיקייה הנוכחית.
 
-## Supported languages
+## באילו שפות זה עובד
 
-The agent itself is language-independent. Only running the tests and reading
-their results depend on the language, and those are detected automatically:
+האיגנט עצמו לא תלוי בשפה. רק הרצת הטסטים תלויה בשפה, והיא מזוהה לבד:
 
-| Language | Detected by | Runs |
+| שפה | איך מזהים | מה מריצים |
 |---|---|---|
-| Python | `pyproject.toml`, `setup.py`, `pytest.ini`, or any `*.py` | `pytest` |
-| JavaScript / TypeScript | `package.json` | `npm test`, or `node --test` when there is no test script |
+| Python | `pyproject.toml`, `setup.py`, `pytest.ini`, או קובץ `*.py` | `pytest` |
+| JavaScript / TypeScript | `package.json` | `npm test`, או `node --test` |
 | Go | `go.mod` | `go test ./...` |
 | Rust | `Cargo.toml` | `cargo test` |
-| Java / Kotlin | `pom.xml`, `build.gradle(.kts)` | `mvn test`, `gradle test` |
+| Java / Kotlin | `pom.xml`, `build.gradle` | `mvn test`, `gradle test` |
 
-For anything else (Ruby, PHP, C#, ...), add a `bugfix.yaml` to the project
-with the command that runs your tests:
+לכל שפה אחרת מוסיפים לפרויקט קובץ `bugfix.yaml` עם הפקודה שמריצה את הטסטים:
+
+</div>
 
 ```yaml
 test_command: "bundle exec rspec"
-language: ruby          # optional, shown in reports
+language: ruby          # רשות, מופיע בדוחות
 ```
 
-## Free models and backup models
+<div dir="rtl">
 
-The raw agent can run on free models, and can fall back to them when Claude
-fails: no credit left, a spend cap, an invalid key, or an outage that outlasts
-the retries. The run then continues on the next model from the same point,
-instead of starting over.
+## מודלים חינמיים כגיבוי
+
+אם Claude נכשל באמצע (נגמר הקרדיט, מפתח לא תקין, תקלה בשרת), האיגנט שבלי SDK ממשיך אצל מודל
+חינמי, **מאותה נקודה** ולא מההתחלה. כותבים את מודלי הגיבוי לפי הסדר:
+
+</div>
 
 ```bash
-bugfix fix --fallback groq:<model>                       # Claude first, then Groq
 bugfix fix --fallback groq:<model> --fallback ollama:<model>
-bugfix fix --model ollama:<model>                        # a local model only
 ```
 
-A free model is written `<host>:<model>`. The model must support tool calling.
+<div dir="rtl">
 
-| Host | What it is | Key |
+מודל חינמי נכתב כך: `<שירות>:<שם המודל>`, והוא חייב לתמוך בהפעלת כלים (tool calling).
+
+| שירות | מה זה | מפתח |
 |---|---|---|
-| `ollama` | Runs on your own computer, fully free and offline. Install from ollama.com, then `ollama pull <model>`. | none |
-| `groq` | Hosted, with a free tier. | `GROQ_API_KEY` |
-| `openrouter` | Hosted; models whose name ends in `:free` cost nothing. | `OPENROUTER_API_KEY` |
-| `gemini` | Google's models, with a free tier. | `GEMINI_API_KEY` |
+| `ollama` | רץ על המחשב שלך, חינמי לגמרי ובלי אינטרנט. מתקינים מ-ollama.com | לא צריך |
+| `groq` | שירות בענן עם מסלול חינמי | `GROQ_API_KEY` |
+| `openrouter` | שירות בענן. מודלים שהשם שלהם נגמר ב-`:free` הם בחינם | `OPENROUTER_API_KEY` |
+| `gemini` | המודלים של Google, עם מסלול חינמי | `GEMINI_API_KEY` |
 
-Free models are usually weaker than Claude at finding bugs, so they make the
-most sense as a backup. Their tokens count toward the token cap and cost $0.
-This works with the raw agent only: the Claude Agent SDK runs on Claude alone,
-which is one of the differences [COMPARISON.md](COMPARISON.md) measures.
+מודלים חינמיים בדרך כלל חלשים יותר מ-Claude במציאת באגים, ולכן הם מתאימים בעיקר כגיבוי.
+זה עובד רק באיגנט שבלי SDK, כי ה-SDK של Claude עובד רק עם Claude. זה אחד ההבדלים שההשוואה מראה.
 
-## What it will and will not do
+## למה אפשר לסמוך עליו
 
-The agent can only list, read and search files, edit files, and run the test
-suite. It has no shell, no web access and no access to anything outside its
-copy of your project. On top of that:
+האיגנט יכול רק לראות אילו קבצים יש, לקרוא, לחפש, לערוך קבצים ולהריץ את הטסטים. אין לו טרמינל
+חופשי, אין לו אינטרנט, ואין לו גישה לשום דבר מחוץ לעותק של הפרויקט. בנוסף:
 
-- **Your files are safe until you say yes.** The agent works on a temporary
-  copy. You see the exact diff first. If a file changed while the agent was
-  working, the change is refused rather than overwriting your edit.
-- **Tests are read-only.** It cannot edit test files or test configuration
-  (`tests/`, `test_*.py`, `*_test.go`, `*.spec.js`, `conftest.py`,
-  `package.json`, `Cargo.toml`, ...). Any change to them, by any route, is
-  detected by hash and the run is rejected.
-- **It does not grade itself.** After the agent stops, the full suite is run
-  again independently. Only that run decides whether the bug is fixed.
-- **It has a budget.** Every run is capped at 15 steps, 1.5M tokens and $2 by
-  default. Change these with `--max-cost` or the settings below.
-- **No secrets leak into your tests.** Test commands run with a minimal
-  environment; your API key and other variables are not passed to them.
+- **הקבצים שלך לא משתנים בלי אישור.** הוא עובד על עותק זמני, ואת השינוי רואים קודם. אם שינית קובץ
+  בזמן שהוא עבד, התיקון לא ידרוס את השינוי שלך.
+- **אסור לו לגעת בטסטים.** הוא לא יכול לערוך קבצי טסט או הגדרות טסטים. אם משהו בהם השתנה בכל דרך
+  שהיא, זה מתגלה והריצה נפסלת.
+- **הוא לא בודק את עצמו.** בסוף, הטסטים רצים שוב באופן עצמאי, ורק התוצאה הזאת קובעת אם הבאג תוקן.
+- **יש לו תקציב.** ברירת המחדל: עד 15 צעדים, 1.5 מיליון טוקנים ו-2 דולר לריצה.
+- **הסודות שלך לא מגיעים לטסטים.** הטסטים רצים בלי מפתח ה-API ובלי שאר משתני הסביבה שלך.
 
-Known limitation: tests that live inside source files (Rust's
-`#[cfg(test)] mod tests`) cannot be protected by file name. The grader's
-independent run still decides the result.
+מגבלה ידועה: טסטים שכתובים בתוך קובץ הקוד עצמו (למשל ב-Rust) אי אפשר להגן עליהם לפי שם הקובץ.
+עדיין, ההרצה העצמאית בסוף היא שקובעת את התוצאה.
 
-## Settings
+## הגדרות
 
-Every setting has a default and can be changed with an environment variable
-that starts with `BUGFIX_`:
+לכל הגדרה יש ברירת מחדל, ומשנים אותה במשתנה סביבה שמתחיל ב-`BUGFIX_`:
 
-| Variable | Default |
-|---|---|
-| `BUGFIX_MODEL` | `claude-sonnet-5-5` |
-| `BUGFIX_FALLBACK_MODELS` | none; comma-separated, e.g. `groq:<model>,ollama:<model>` |
-| `BUGFIX_EFFORT` | `medium` |
-| `BUGFIX_MAX_ITERATIONS` | `15` |
-| `BUGFIX_MAX_COST_USD` | `2.0` |
-| `BUGFIX_MAX_TOTAL_TOKENS` | `1500000` |
-| `BUGFIX_TEST_TIMEOUT_S` | `120` |
+| משתנה | מה הוא קובע | ברירת מחדל |
+|---|---|---|
+| `BUGFIX_MODEL` | המודל | `claude-sonnet-5-5` |
+| `BUGFIX_FALLBACK_MODELS` | מודלי גיבוי, מופרדים בפסיק | אין |
+| `BUGFIX_EFFORT` | כמה מאמץ המודל משקיע | `medium` |
+| `BUGFIX_MAX_ITERATIONS` | מספר צעדים מקסימלי | `15` |
+| `BUGFIX_MAX_COST_USD` | עלות מקסימלית לריצה, בדולרים | `2.0` |
+| `BUGFIX_MAX_TOTAL_TOKENS` | מספר טוקנים מקסימלי | `1500000` |
+| `BUGFIX_TEST_TIMEOUT_S` | כמה שניות מחכים לטסטים | `120` |
 
-The full list is in `core/config.py`.
+הרשימה המלאה נמצאת ב-`core/config.py`.
 
-## How it is built
+## איך הקוד בנוי
+
+</div>
 
 ```text
-cli/          the `bugfix` command
-ui/           the browser interface (`bugfix ui`): logic.py does the work, app.py draws it
-core/         everything both agents share
-  tools.py        the five tools: run_tests, list_files, read_file, search_code, edit_file
-  sandbox.py      the private copy, path containment, timeouts, clean environment
-  guards.py       read-only tests, tamper detection, budgets
-  languages.py    test runners and result parsers per language
-  evaluation.py   independent grading
-  harness.py      the run around the loop: baseline, snapshot, solve, grade, patch
-  prompts.py      one system prompt, used verbatim by both agents
-raw_agent/    the agent without an SDK
-  client.py       HTTP, auth, error types, retries with backoff
-  providers/      the model layer: Anthropic, free models (OpenAI-compatible), fallback chain
-  loop.py         the agent loop
-sdk_agent/    the agent on the Claude Agent SDK
-  agent.py        our tools as in-process MCP tools, built-ins off, message handling
-benchmark/    13 bugs in Python, JavaScript, Go and Rust, and the comparison runner
-tests/        212 tests, none of which need an API key
+cli/          הפקודה bugfix
+ui/           הממשק בדפדפן: logic.py עושה את העבודה, app.py מצייר, texts.py מחזיק את כל הטקסטים
+core/         כל מה ששני האיגנטים חולקים
+  tools.py        חמשת הכלים: run_tests, list_files, read_file, search_code, edit_file
+  sandbox.py      העותק הפרטי, שמירה שלא יוצאים ממנו, זמני ריצה, סביבה נקייה
+  guards.py       טסטים לקריאה בלבד, זיהוי שינוי בטסטים, תקציבים
+  languages.py    איך מריצים טסטים ואיך קוראים את התוצאה, לכל שפה
+  evaluation.py   הבדיקה העצמאית בסוף
+  harness.py      מה שמסביב ללולאה: מצב התחלתי, עותק, תיקון, בדיקה, diff
+  prompts.py      ההנחיות למודל, אותן הנחיות בדיוק לשני האיגנטים
+raw_agent/    האיגנט בלי SDK
+  client.py       תקשורת, הזדהות, סוגי שגיאות, ניסיונות חוזרים
+  providers/      שכבת המודלים: Anthropic, מודלים חינמיים, שרשרת גיבוי
+  loop.py         הלולאה של האיגנט
+sdk_agent/    האיגנט עם Claude Agent SDK
+  agent.py        הכלים שלנו ככלי MCP, בלי הכלים המובנים, טיפול בהודעות
+benchmark/    13 באגים ב-Python, JavaScript, Go ו-Rust, והכלי שמשווה בין האיגנטים
+tests/        216 טסטים, ואף אחד מהם לא צריך מפתח API
 ```
 
-Both agents plug into the same `run_case()` in `core/harness.py`. The only thing
-that differs between them is the loop that talks to the model, which is what
-makes the comparison fair.
+<div dir="rtl">
 
-## The benchmark
+שני האיגנטים מתחברים לאותה פונקציה, `run_case()` שבקובץ `core/harness.py`. ההבדל היחיד ביניהם
+הוא הלולאה שמדברת עם המודל, וזה מה שהופך את ההשוואה להוגנת.
+
+## ההשוואה בין שני האיגנטים
+
+</div>
 
 ```bash
-bugfix benchmark                         # both agents, all 13 cases, 3 runs each
-bugfix benchmark --engine raw --cases 01 11 --repeats 1
+bugfix benchmark                                          # שני האיגנטים, 13 באגים, 3 פעמים כל אחד
+bugfix benchmark --engine raw --cases 01 11 --repeats 1   # הרצה קטנה וזולה
 ```
 
-It writes `benchmark/results/results.md`: resolve rate, steps, tokens, cost and
-time per agent, results per case, and any run that touched tests or hit a
-budget. Each case runs several times because model runs are not deterministic.
+<div dir="rtl">
 
-The cases range from an off-by-one to two cross-file bugs and a rounding trap
-where the obvious fix breaks other tests. Each one is validated by the test
-suite: it must fail as shipped, and its reference fix must make it pass.
+התוצאה נכתבת לקובץ `benchmark/results/results.md`: כמה באגים תוקנו, כמה צעדים, כמה טוקנים, כמה
+עלה וכמה זמן לקח, לכל איגנט ולכל באג. כל באג רץ כמה פעמים, כי מודל לא עונה בדיוק אותו דבר בכל
+פעם. ההרצה המלאה עולה כמה דולרים.
 
-## Learning comments
+הבאגים נעים בין טעות של אחד באינדקס, דרך באגים שמפוזרים על שני קבצים, ועד מלכודת עיגול שבה
+התיקון המתבקש שובר טסטים אחרים. כל באג נבדק: הוא חייב להיכשל כמו שהוא, והתיקון הנכון חייב לעבור.
 
-Lines that start with `# 📘` are explanations in Hebrew for studying the code,
-tagged `[בלי SDK]` / `[עם SDK]` where the two implementations differ. They can
-all be removed at once, leaving the code unchanged:
+## הערות הסבר בעברית בקוד
+
+כל שורה בקוד שמתחילה ב-`# 📘` היא הסבר בעברית, ללמידה. במקומות שבהם שני האיגנטים שונים, ההסבר
+מסומן `[בלי SDK]` או `[עם SDK]`. כדי להגיש בלי ההסברים:
+
+</div>
 
 ```bash
 make strip-explanations
 ```
 
-## Development
+<div dir="rtl">
+
+הפקודה מוחקת רק את שורות ההסבר. הקוד עצמו לא משתנה.
+
+## למפתחים
+
+</div>
 
 ```bash
 pip install -e ".[dev]"
-make check          # ruff, mypy --strict and pytest
+make check          # ruff, mypy --strict ו-pytest
 ```
 
-The tests use a scripted fake API for the raw agent and a scripted message
-stream for the SDK agent, so they run offline and cost nothing.
+<div dir="rtl">
+
+הטסטים משתמשים ב-API מדומה, ולכן הם רצים בלי אינטרנט ובלי עלות.
+
+</div>

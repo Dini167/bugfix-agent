@@ -212,6 +212,7 @@ def cmd_ui(args: argparse.Namespace, display: Display) -> int:
     display.title("Opening the bugfix agent in your browser. Press Ctrl+C here to stop it.")
     argv = [sys.executable, "-m", "streamlit", "run", str(app)]
     argv += ["--browser.gatherUsageStats", "false", "--server.port", str(args.port)]
+    argv += ["--client.toolbarMode", "minimal"]
     return subprocess.call(argv)
 
 
