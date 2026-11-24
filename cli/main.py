@@ -236,6 +236,7 @@ def cmd_review(args: argparse.Namespace, display: Display) -> int:
         display.line(result.summary)
     if not result.findings:
         display.good("No bugs found. Nothing to fix.")
+        display.info(f"{result.wall_time_s:.0f}s, about ${result.cost_usd:.4f}")
         return 0
     display.bad(f"{len(result.findings)} bug(s) found.")
     fixed = code
