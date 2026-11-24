@@ -226,3 +226,10 @@ def test_file_helpers() -> None:
     assert logic.decode(b"\x00\x01binary") is None
     diff = logic.file_diff("a.py", "x = 1\n", "x = 2\n")
     assert "-x = 1" in diff and "+x = 2" in diff
+
+
+def test_friendly_errors() -> None:
+    ssl_error = Exception("connection failed: [SSL: CERTIFICATE_VERIFY_FAILED] certificate")
+    assert "סינון" in logic.friendly_error(ssl_error)
+    assert "מפתח" in logic.friendly_error(Exception("401 authentication_error"))
+    assert logic.friendly_error(Exception("something else")) == "something else"

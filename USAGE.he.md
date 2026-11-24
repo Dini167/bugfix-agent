@@ -236,6 +236,7 @@ make strip-explanations
 | `Could not detect how to run this repository's tests` | להוסיף `bugfix.yaml` עם `test_command` |
 | `No terminal to ask for confirmation` | להריץ שוב עם `--yes`, או בטרמינל רגיל |
 | `Stopped at the budget limit` | להעלות את התקציב עם `--max-cost`, או לנסות מודל חזק יותר |
+| `CERTIFICATE_VERIFY_FAILED` | הרשת בודקת את החיבורים (למשל סינון אינטרנט). צריך שהתעודה של הסינון תהיה מותקנת ב-Windows. אם רק האיגנט עם SDK נכשל, מגדירים גם `NODE_EXTRA_CA_CERTS` לקובץ התעודה |
 | `Rejected: the agent changed test files` | הריצה נפסלה בכוונה. הפרויקט שלך לא השתנה |
 
 </div>

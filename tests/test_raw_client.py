@@ -176,3 +176,18 @@ def test_error_message_has_request_id_but_not_key() -> None:
 
 def test_rate_limit_error_is_retryable_class() -> None:
     assert RateLimitError.retryable and not SpendLimitError.retryable
+
+
+def test_tls_context_verifies_but_accepts_filtering_proxies(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import ssl
+
+    import certifi
+
+    from raw_agent.client import tls_context
+
+    monkeypatch.setenv("SSL_CERT_FILE", certifi.where())
+    context = tls_context()
+    assert context.verify_mode is ssl.CERT_REQUIRED and context.check_hostname
+    assert not context.verify_flags & ssl.VERIFY_X509_STRICT

@@ -21,10 +21,13 @@ from __future__ import annotations
 
 import os
 import random
+import ssl
 import time
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any, Self
 
+import certifi
 import httpx
 
 from core.config import Settings
@@ -153,6 +156,29 @@ def _error_for(response: httpx.Response) -> APIError:
 
 # 📘 לקוח HTTP כללי עם ניסיונות חוזרים. גם הלקוח של Anthropic וגם הלקוח של המודלים החינמיים
 # 📘 (providers/openai_compat.py) בנויים עליו, כך שכל לוגיקת הניסיונות החוזרים כתובה פעם אחת.
+# 📘 בדיקת האבטחה של החיבור (HTTPS). רשתות מסוננות, כמו סינון אינטרנט בבית או בעבודה, בודקות את
+# 📘 התעבורה עם תעודה משלהן שמותקנת במחשב. סומכים גם על התעודות של מערכת ההפעלה, ומבטלים רק את
+# 📘 הבדיקה הנוקשה ש-Python 3.13 הוסיף ושדוחה תעודות כאלה. האימות עצמו נשאר פעיל.
+def tls_context() -> ssl.SSLContext:
+    """Certificate checks that also work behind a filter or proxy that inspects HTTPS.
+
+    Such filters install their own root certificate in the operating system, so
+    the system store is trusted along with certifi's public roots and any file
+    named in SSL_CERT_FILE or REQUESTS_CA_BUNDLE. Python 3.13 turned on
+    VERIFY_X509_STRICT, which rejects many of those roots ("CA cert does not
+    include key usage extension"); only that flag is turned back off, as in
+    earlier Python versions. Certificates and host names are still verified.
+    """
+    context = ssl.create_default_context()  # includes the system store
+    context.load_verify_locations(certifi.where())
+    for variable in ("SSL_CERT_FILE", "REQUESTS_CA_BUNDLE"):
+        path = os.environ.get(variable)
+        if path and Path(path).is_file():
+            context.load_verify_locations(path)
+    context.verify_flags &= ~ssl.VERIFY_X509_STRICT
+    return context
+
+
 class JsonHTTPClient:
     """POST JSON with retries, shared by every provider's client."""
 
@@ -174,6 +200,7 @@ class JsonHTTPClient:
             headers={"content-type": "application/json", **headers},
             timeout=httpx.Timeout(settings.api_timeout_s, connect=10.0),
             transport=transport,
+            verify=tls_context(),
         )
 
     def __enter__(self) -> Self:

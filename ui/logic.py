@@ -253,3 +253,20 @@ def decode(data: bytes) -> str | None:
         except UnicodeDecodeError:
             continue
     return None
+
+
+def friendly_error(exc: Exception) -> str:
+    """What went wrong talking to the model, in Hebrew, with what to do about it."""
+    text = str(exc)
+    if "CERTIFICATE_VERIFY_FAILED" in text or "certificate verify failed" in text:
+        return (
+            "החיבור לשרת נחסם בבדיקת האבטחה של הרשת (למשל סינון אינטרנט). אם יש לכם סינון, "
+            "ודאו שהתעודה שלו מותקנת במחשב, ונסו שוב."
+        )
+    if "401" in text or "authentication" in text.lower() or "api key" in text.lower():
+        return "מפתח ה-API לא תקין. בדקו אותו ונסו שוב."
+    if "credit" in text.lower() or "billing" in text.lower():
+        return "נגמר הקרדיט בחשבון ה-API. אפשר להוסיף קרדיט ב-console.anthropic.com."
+    if "connection" in text.lower() or "timed out" in text.lower():
+        return "אין חיבור לשרת. בדקו את החיבור לאינטרנט ונסו שוב."
+    return text

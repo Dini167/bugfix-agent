@@ -169,7 +169,9 @@ def render(settings: Settings, missing: str | None) -> None:
                 try:
                     result = logic.review_code(upload.name, code, settings)
                 except (review.ReviewError, APIError) as exc:
-                    st.error(f"הבדיקה לא הצליחה: {exc}")
+                    st.error(f"הבדיקה לא הצליחה. {logic.friendly_error(exc)}")
+                    with st.expander("פרטים טכניים"):
+                        st.code(str(exc), language=None)
                     return
             session = Session(fingerprint, upload.name, code, code, result)
             st.session_state.review_session = session
