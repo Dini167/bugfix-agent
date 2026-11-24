@@ -119,6 +119,11 @@ class Toolbox:
             "edit_file": self.edit_file,
         }
 
+    @property
+    def workspace_root(self) -> Path:
+        """The workspace directory; engines use it as the agent's working directory."""
+        return self._ws.root
+
     # ------------------------------------------------------------------ specs
 
     @staticmethod
