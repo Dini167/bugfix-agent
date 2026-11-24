@@ -1,0 +1,2068 @@
+{
+  "generated_at": "2026-11-24T01:44:08+00:00",
+  "model": "claude-haiku-5-5",
+  "effort": "medium",
+  "repeats": 3,
+  "summaries": {
+    "raw": {
+      "agent": "raw",
+      "runs": 39,
+      "resolved": 39,
+      "mean_iterations": 4.9487,
+      "mean_input_tokens": 13455.7436,
+      "mean_output_tokens": 1062.5385,
+      "mean_cost_usd": 0.0009,
+      "mean_wall_time_s": 6.5364,
+      "tampered": 0,
+      "budget_exceeded": 0,
+      "errors": 0
+    },
+    "sdk": {
+      "agent": "sdk",
+      "runs": 39,
+      "resolved": 39,
+      "mean_iterations": 5.0769,
+      "mean_input_tokens": 15848.2821,
+      "mean_output_tokens": 1119.0256,
+      "mean_cost_usd": 0.0011,
+      "mean_wall_time_s": 7.9297,
+      "tampered": 0,
+      "budget_exceeded": 0,
+      "errors": 0
+    }
+  },
+  "runs": {
+    "raw": [
+      {
+        "case_id": "01_off_by_one",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 12,
+          "output_tokens": 912,
+          "cache_read_input_tokens": 12323,
+          "cache_creation_input_tokens": 646
+        },
+        "cost_usd": 0.000661,
+        "wall_time_s": 6.16,
+        "tests_passed": 4,
+        "tests_total": 4,
+        "tests_failing_before": 2,
+        "runner": "python/pytest",
+        "changes": [
+          "gradebook/stats.py"
+        ],
+        "patch": "--- a/gradebook/stats.py\n+++ b/gradebook/stats.py\n@@ -6,7 +6,7 @@\n     if not grades:\n         raise ValueError(\"cannot average an empty list of grades\")\n     total = 0.0\n-    for i in range(1, len(grades)):\n+    for i in range(len(grades)):\n         total += grades[i]\n     return total / len(grades)\n \n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nThe `average` function adds up the grades with a loop, but the loop started counting at position 1 instead of position 0. In Python, list positions begin at 0, so the first grade was never added to the total. With `[90, 80, 85]` the function added only 80 and 85 and got 55 instead of 85. With `[72]` there was nothing left to add, so it returned 0.\n\n## Location\n`gradebook/stats.py:9`\n\n## Change\nChanged `for i in range(1, len(grades)):` to `for i in range(len(grades)):`, so the loop visits every index from 0 through the last one.\n\n## Why it is correct\nThe average is the sum of all grades divided by how many there are. The loop now adds every grade once, and the division by `len(grades)` was already correct. This fixes the actual miscount rather than adjusting the expected results or special-casing inputs.\n\n## Tests\nFinal full run: 4 passed, 0 failed, 0 errors, 0 skipped.\n\n## Lesson\nWhen you loop over a list by index, Python's indexes start at 0 and end at `len - 1`, so `range(len(items))` is the full range. Check the start value of any range against the first element you need to process.",
+        "error": null
+      },
+      {
+        "case_id": "01_off_by_one",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 12,
+          "output_tokens": 827,
+          "cache_read_input_tokens": 12323,
+          "cache_creation_input_tokens": 564
+        },
+        "cost_usd": 0.000608,
+        "wall_time_s": 5.64,
+        "tests_passed": 4,
+        "tests_total": 4,
+        "tests_failing_before": 2,
+        "runner": "python/pytest",
+        "changes": [
+          "gradebook/stats.py"
+        ],
+        "patch": "--- a/gradebook/stats.py\n+++ b/gradebook/stats.py\n@@ -6,7 +6,7 @@\n     if not grades:\n         raise ValueError(\"cannot average an empty list of grades\")\n     total = 0.0\n-    for i in range(1, len(grades)):\n+    for i in range(len(grades)):\n         total += grades[i]\n     return total / len(grades)\n \n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nThe `average` function adds up the grades with a loop, but the loop started counting at position 1 instead of position 0. In Python, list positions start at 0, so the first grade was never added to the total. The function still divided by the full count, so the answer came out too low. With `[72]` nothing got added, giving 0. With `[90, 80, 85]` only 80 and 85 got added, giving 165 / 3 = 55.\n\n## Location\n`gradebook/stats.py:9`\n\n## Change\nChanged `range(1, len(grades))` to `range(len(grades))` so the loop visits every index from 0 through the last one.\n\n## Why it is correct\nThe average is the sum of all grades divided by how many there are. The fix makes the sum include every grade, so the division now matches it. It corrects the general logic rather than special-casing the test inputs.\n\n## Tests\nFinal full run: 4 passed, 0 failed, 0 errors, 0 skipped.\n\n## Lesson\nWhen you loop over a list by index, check where the range starts. Python indexes start at 0, and an off-by-one start quietly drops the first item. Test with a one-element list, since it exposes this kind of bug immediately.",
+        "error": null
+      },
+      {
+        "case_id": "01_off_by_one",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 12,
+          "output_tokens": 833,
+          "cache_read_input_tokens": 12323,
+          "cache_creation_input_tokens": 541
+        },
+        "cost_usd": 0.000609,
+        "wall_time_s": 5.82,
+        "tests_passed": 4,
+        "tests_total": 4,
+        "tests_failing_before": 2,
+        "runner": "python/pytest",
+        "changes": [
+          "gradebook/stats.py"
+        ],
+        "patch": "--- a/gradebook/stats.py\n+++ b/gradebook/stats.py\n@@ -6,7 +6,7 @@\n     if not grades:\n         raise ValueError(\"cannot average an empty list of grades\")\n     total = 0.0\n-    for i in range(1, len(grades)):\n+    for i in range(len(grades)):\n         total += grades[i]\n     return total / len(grades)\n \n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nThe `average` function adds up the grades with a loop, but the loop started counting at position 1 instead of position 0. In Python, lists are numbered from 0, so the first grade was never added to the total. The function still divided by the full count, so the answer came out too low. For `[72]` the total stayed at 0, giving 0.0. For `[90, 80, 85]` only 80 and 85 were added, giving 165 / 3 = 55.0.\n\n## Location\n`gradebook/stats.py:9`\n\n## Change\nChanged `for i in range(1, len(grades)):` to `for i in range(len(grades)):` so the loop visits every index.\n\n## Why it is correct\nThe average is the sum of all grades divided by how many there are. The loop now sums every element, and the division already used `len(grades)`, so the result matches the definition of the mean. The fix is in the function itself, not in the tests or in special handling for particular inputs.\n\n## Tests\nFinal full run: passed=4, failed=0, errors=0, skipped=0.\n\n## Lesson\nWhen you loop over a list by index, check where the range starts: Python indexes from 0, so `range(1, n)` quietly skips the first item. Writing `for g in grades:` avoids this kind of off-by-one error entirely.",
+        "error": null
+      },
+      {
+        "case_id": "02_inverted_condition",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 12,
+          "output_tokens": 934,
+          "cache_read_input_tokens": 13337,
+          "cache_creation_input_tokens": 2291
+        },
+        "cost_usd": 0.000888,
+        "wall_time_s": 5.88,
+        "tests_passed": 5,
+        "tests_total": 5,
+        "tests_failing_before": 4,
+        "runner": "python/pytest",
+        "changes": [
+          "shop/shipping.py"
+        ],
+        "patch": "--- a/shop/shipping.py\n+++ b/shop/shipping.py\n@@ -6,7 +6,7 @@\n \n def qualifies_for_free_shipping(order_total: float) -> bool:\n     \"\"\"Orders of at least the threshold ship for free.\"\"\"\n-    return order_total < FREE_SHIPPING_THRESHOLD\n+    return order_total >= FREE_SHIPPING_THRESHOLD\n \n \n def shipping_fee(order_total: float) -> float:\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nThe function that decides whether an order ships free had its comparison backwards. It returned `True` when the order total was *less than* $200, so small orders got free shipping and large orders were charged the $25 fee. The docstring says orders of *at least* the threshold ship free, and the tests expect $200 itself to qualify. Because the logic was inverted, every shipping test that depends on this check failed.\n\n## Location\n`shop/shipping.py:9`\n\n## Change\nChanged `order_total < FREE_SHIPPING_THRESHOLD` to `order_total >= FREE_SHIPPING_THRESHOLD`.\n\n## Why it is correct\nThe fix is in the function that makes the decision, not in the tests or in the fee code. `shipping_fee` already relies on `qualifies_for_free_shipping`, so correcting that one comparison fixes all four failing tests. It also matches the docstring and the inclusive-threshold behavior (exactly $200 ships free).\n\n## Tests\nFinal full run: 5 passed, 0 failed, 0 errors, 0 skipped.\n\n## Lesson\nWhen a condition is written as an inequality, check it against the plain-English rule (here, \"at least\" means `>=`, not `<`) and against the boundary case. Writing the boundary test first makes this kind of flipped operator easy to spot.",
+        "error": null
+      },
+      {
+        "case_id": "02_inverted_condition",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 12,
+          "output_tokens": 987,
+          "cache_read_input_tokens": 14087,
+          "cache_creation_input_tokens": 1605
+        },
+        "cost_usd": 0.000836,
+        "wall_time_s": 6.12,
+        "tests_passed": 5,
+        "tests_total": 5,
+        "tests_failing_before": 4,
+        "runner": "python/pytest",
+        "changes": [
+          "shop/shipping.py"
+        ],
+        "patch": "--- a/shop/shipping.py\n+++ b/shop/shipping.py\n@@ -6,7 +6,7 @@\n \n def qualifies_for_free_shipping(order_total: float) -> bool:\n     \"\"\"Orders of at least the threshold ship for free.\"\"\"\n-    return order_total < FREE_SHIPPING_THRESHOLD\n+    return order_total >= FREE_SHIPPING_THRESHOLD\n \n \n def shipping_fee(order_total: float) -> float:\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nThe free-shipping check had its comparison backwards. The function `qualifies_for_free_shipping` is supposed to return true when an order is at least $200. Instead it returned true when the order was *below* $200. Because `shipping_fee` depends on that answer, small orders got free shipping and large orders were charged the $25 fee. That is why all four shipping tests failed while the delivery-days test, which doesn't touch this logic, passed.\n\n## Location\n`shop/shipping.py:9`\n\n## Change\nChanged `order_total < FREE_SHIPPING_THRESHOLD` to `order_total >= FREE_SHIPPING_THRESHOLD`.\n\n## Why it is correct\nThe docstring states the rule (\"at least the threshold ship for free\"), and the test `test_threshold_is_inclusive` requires an order of exactly $200 to qualify. `>=` gives both. The fix is in the function that decides the outcome, so `shipping_fee` now returns 0 for large orders and $25 for small ones without any change to that function. No test was edited and no special-casing was added.\n\n## Tests\nFinal full run: passed=5, failed=0, errors=0, skipped=0.\n\n## Lesson\nWhen a boolean condition drives other logic, check its direction against the written rule, and pay attention to whether the boundary is inclusive (\"at least\", \">=\") or exclusive. A comparison that is one symbol off can invert the whole feature without raising any error.",
+        "error": null
+      },
+      {
+        "case_id": "02_inverted_condition",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 12,
+          "output_tokens": 970,
+          "cache_read_input_tokens": 15049,
+          "cache_creation_input_tokens": 597
+        },
+        "cost_usd": 0.000711,
+        "wall_time_s": 6.3,
+        "tests_passed": 5,
+        "tests_total": 5,
+        "tests_failing_before": 4,
+        "runner": "python/pytest",
+        "changes": [
+          "shop/shipping.py"
+        ],
+        "patch": "--- a/shop/shipping.py\n+++ b/shop/shipping.py\n@@ -6,7 +6,7 @@\n \n def qualifies_for_free_shipping(order_total: float) -> bool:\n     \"\"\"Orders of at least the threshold ship for free.\"\"\"\n-    return order_total < FREE_SHIPPING_THRESHOLD\n+    return order_total >= FREE_SHIPPING_THRESHOLD\n \n \n def shipping_fee(order_total: float) -> float:\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nThe function that decides whether an order ships free had its comparison backwards. It returned `True` when the order total was *less than* 200, so small orders got free shipping and large orders were charged the 25.00 fee. The docstring says orders \"of at least the threshold\" ship free, and the tests expect 200.00 to qualify. Because the function was inverted, `shipping_fee` was also inverted, which caused all four failures.\n\n## Location\n`shop/shipping.py:9`\n\n## Change\nChanged `order_total < FREE_SHIPPING_THRESHOLD` to `order_total >= FREE_SHIPPING_THRESHOLD`.\n\n## Why it is correct\nThe fix is in the rule itself, not in the tests or in the fee function. `shipping_fee` already depends on `qualifies_for_free_shipping`, so correcting that one comparison fixes both functions. The `>=` operator also matches the \"at least\" wording and the inclusive threshold test at exactly 200.\n\n## Tests\nFinal full run: 5 passed, 0 failed, 0 errors, 0 skipped.\n\n## Lesson\nWhen a condition is written as a comparison, check the direction of the operator against the plain-English rule (here, \"at least\" means `>=`, not `<`). Then test the boundary value itself, since off-by-one and inverted comparisons often pass obvious cases and fail at the edge.",
+        "error": null
+      },
+      {
+        "case_id": "03_mutable_default",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 12,
+          "output_tokens": 1342,
+          "cache_read_input_tokens": 12059,
+          "cache_creation_input_tokens": 2292
+        },
+        "cost_usd": 0.001079,
+        "wall_time_s": 7.48,
+        "tests_passed": 3,
+        "tests_total": 3,
+        "tests_failing_before": 2,
+        "runner": "python/pytest",
+        "changes": [
+          "notes/model.py"
+        ],
+        "patch": "--- a/notes/model.py\n+++ b/notes/model.py\n@@ -9,13 +9,13 @@\n     tags: list[str]\n \n \n-def make_note(title: str, tags: list[str] = []) -> Note:\n+def make_note(title: str, tags: list[str] | None = None) -> Note:\n     \"\"\"Create a note. Tags are normalized to lowercase and de-duplicated.\"\"\"\n-    for tag in list(tags):\n-        tags.remove(tag)\n-        if tag.lower() not in tags:\n-            tags.append(tag.lower())\n-    return Note(title=title, tags=tags)\n+    normalized: list[str] = []\n+    for tag in tags or []:\n+        if tag.lower() not in normalized:\n+            normalized.append(tag.lower())\n+    return Note(title=title, tags=normalized)\n \n \n def add_tag(note: Note, tag: str) -> None:\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`make_note` had two related bugs in how it handled the `tags` list:\n\n1. **Shared default list.** The default `tags=[]` is created once, when Python loads the function, and every call that omits `tags` gets that same list. Tags added to one note therefore showed up in every later note that had no tags. That is why a fresh note reported `['urgent']`.\n2. **Mutating the caller's list.** The loop called `tags.remove(...)` and `tags.append(...)` on the list it was given. Callers saw their own list change, which is why `[\"A\", \"B\"]` came back as `['a', 'b']`.\n\n## Location\n`notes/model.py:12`\n\n## Change\n`make_note` now defaults `tags` to `None`, and builds a new `normalized` list from the input. The input list is only read, never changed. Each note gets its own list.\n\n## Why it is correct\nThe root cause is the mutable default argument plus in-place mutation of input. Replacing the default with `None` gives each call a fresh list. Building a new list means the function no longer changes its arguments. Both failing tests exercise exactly these behaviors, and the normalization test still passes because lowercasing and de-duplication are preserved.\n\n## Tests\nFinal full run: 3 passed, 0 failed, 0 errors, 0 skipped.\n\n## Lesson\nNever use a mutable object such as a list or dict as a default argument; use `None` and create the object inside the function. Also avoid modifying arguments you were given unless the caller expects it, and build a new result instead.",
+        "error": null
+      },
+      {
+        "case_id": "03_mutable_default",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 12,
+          "output_tokens": 1318,
+          "cache_read_input_tokens": 13261,
+          "cache_creation_input_tokens": 1084
+        },
+        "cost_usd": 0.000928,
+        "wall_time_s": 7.33,
+        "tests_passed": 3,
+        "tests_total": 3,
+        "tests_failing_before": 2,
+        "runner": "python/pytest",
+        "changes": [
+          "notes/model.py"
+        ],
+        "patch": "--- a/notes/model.py\n+++ b/notes/model.py\n@@ -9,13 +9,13 @@\n     tags: list[str]\n \n \n-def make_note(title: str, tags: list[str] = []) -> Note:\n+def make_note(title: str, tags: list[str] | None = None) -> Note:\n     \"\"\"Create a note. Tags are normalized to lowercase and de-duplicated.\"\"\"\n-    for tag in list(tags):\n-        tags.remove(tag)\n-        if tag.lower() not in tags:\n-            tags.append(tag.lower())\n-    return Note(title=title, tags=tags)\n+    normalized: list[str] = []\n+    for tag in tags or []:\n+        if tag.lower() not in normalized:\n+            normalized.append(tag.lower())\n+    return Note(title=title, tags=normalized)\n \n \n def add_tag(note: Note, tag: str) -> None:\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`make_note` had two related bugs. First, it used a mutable default argument (`tags=[]`). Python creates that list once, when the function is defined, and reuses it on every call. So a tag added to one note's list (through `add_tag`) showed up in every later note that relied on the default. Second, `make_note` changed the caller's list in place (`tags.remove` and `tags.append`), so the caller's original list was altered. The normalization loop was also muddled: it removed items while iterating over a copy of the list and then checked against the list it was still editing.\n\n## Location\n`notes/model.py:12`\n\n## Change\nChanged the signature to `tags: list[str] | None = None`. The function now builds a fresh `normalized` list, adds each tag in lowercase only if it isn't already there, and returns a note that holds that new list. It never touches the input list.\n\n## Why it is correct\nA new list is created on every call, so no state is shared between notes. The input is only read, so the caller's list is never changed. Deduplication still happens, and tags are still lowercased. This fixes the cause (shared state and mutation) rather than the symptoms in the individual assertions.\n\n## Tests\nFinal full run: 3 passed, 0 failed, 0 errors, 0 skipped.\n\n## Lesson\nNever use a mutable object (a list, dict, or set) as a default argument. Use `None` and create the object inside the function. Also avoid modifying input collections in place. Build and return a new one instead.",
+        "error": null
+      },
+      {
+        "case_id": "03_mutable_default",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 12,
+          "output_tokens": 1373,
+          "cache_read_input_tokens": 13261,
+          "cache_creation_input_tokens": 1112
+        },
+        "cost_usd": 0.000959,
+        "wall_time_s": 7.91,
+        "tests_passed": 3,
+        "tests_total": 3,
+        "tests_failing_before": 2,
+        "runner": "python/pytest",
+        "changes": [
+          "notes/model.py"
+        ],
+        "patch": "--- a/notes/model.py\n+++ b/notes/model.py\n@@ -9,13 +9,13 @@\n     tags: list[str]\n \n \n-def make_note(title: str, tags: list[str] = []) -> Note:\n+def make_note(title: str, tags: list[str] | None = None) -> Note:\n     \"\"\"Create a note. Tags are normalized to lowercase and de-duplicated.\"\"\"\n-    for tag in list(tags):\n-        tags.remove(tag)\n-        if tag.lower() not in tags:\n-            tags.append(tag.lower())\n-    return Note(title=title, tags=tags)\n+    normalized: list[str] = []\n+    for tag in tags or []:\n+        if tag.lower() not in normalized:\n+            normalized.append(tag.lower())\n+    return Note(title=title, tags=normalized)\n \n \n def add_tag(note: Note, tag: str) -> None:\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`make_note` had two related bugs in how it handled the tag list.\n\n1. **Shared default list.** The default `tags=[]` is created once, when the function is defined, and every call that omits `tags` gets that same list. Tags added to one note (via `add_tag`) therefore showed up in every later note created without tags.\n2. **Mutating the caller's list.** The loop called `tags.remove(...)` and `tags.append(...)` on the list passed in, so the caller's list was rewritten in place. The loop also checked for duplicates against the list it was modifying, which made the normalization logic hard to follow.\n\n## Location\n`notes/model.py:12`\n\n## Change\nChanged the signature to `tags: list[str] | None = None`. The function now builds a new `normalized` list from `tags or []`, lowercasing each tag and skipping duplicates, and passes that list to `Note`. The caller's list is never touched.\n\n## Why it is correct\nThe root cause is that the function shared and mutated a list it did not own. Using `None` as the default gives each call its own list. Building a fresh list means the input is only read, never written. `add_tag` can then change one note without affecting others, and the caller's list keeps its original contents and casing.\n\n## Tests\nFinal full run: 3 passed, 0 failed, 0 errors, 0 skipped.\n\n## Lesson\nNever use a mutable value (list, dict, set) as a default argument, and avoid modifying a list that was passed in unless the function's contract says so. Use `None` as the default and create a new object inside the function.",
+        "error": null
+      },
+      {
+        "case_id": "04_empty_input",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 4,
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 870,
+          "cache_read_input_tokens": 8883,
+          "cache_creation_input_tokens": 1554
+        },
+        "cost_usd": 0.000719,
+        "wall_time_s": 5.35,
+        "tests_passed": 4,
+        "tests_total": 4,
+        "tests_failing_before": 1,
+        "runner": "python/pytest",
+        "changes": [
+          "metrics/series.py"
+        ],
+        "patch": "--- a/metrics/series.py\n+++ b/metrics/series.py\n@@ -5,6 +5,8 @@\n \n def mean(values: Sequence[float]) -> float:\n     \"\"\"Arithmetic mean. Raises ValueError(\"empty series\") for empty input.\"\"\"\n+    if not values:\n+        raise ValueError(\"empty series\")\n     return sum(values) / len(values)\n \n \n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`mean()` divides the sum of a list by its length. When the list is empty, the length is 0, so Python raised a `ZeroDivisionError`. The function's docstring and the test both expect a `ValueError(\"empty series\")` for that case. The sibling function `spread()` already had the check, but `mean()` did not.\n\n## Location\n`metrics/series.py:8`\n\n## Change\nAdded the same guard that `spread()` uses at the top of `mean()`: if `values` is empty, raise `ValueError(\"empty series\")`.\n\n## Why it is correct\nThe error now happens before the division, so the caller gets the documented exception type and message instead of a crash from arithmetic. Non-empty inputs take the same path as before, so `mean` results are unchanged. The fix follows the existing pattern in `spread()`, so the two functions now behave consistently.\n\n## Tests\nFinal full run: passed=4, failed=0, errors=0, skipped=0.\n\n## Lesson\nWhen a docstring promises a specific error for bad input, check that the code actually validates the input rather than letting a lower-level exception escape. When you write several functions with the same contract, keep their guards consistent.",
+        "error": null
+      },
+      {
+        "case_id": "04_empty_input",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 4,
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 865,
+          "cache_read_input_tokens": 9822,
+          "cache_creation_input_tokens": 603
+        },
+        "cost_usd": 0.000607,
+        "wall_time_s": 4.98,
+        "tests_passed": 4,
+        "tests_total": 4,
+        "tests_failing_before": 1,
+        "runner": "python/pytest",
+        "changes": [
+          "metrics/series.py"
+        ],
+        "patch": "--- a/metrics/series.py\n+++ b/metrics/series.py\n@@ -5,6 +5,8 @@\n \n def mean(values: Sequence[float]) -> float:\n     \"\"\"Arithmetic mean. Raises ValueError(\"empty series\") for empty input.\"\"\"\n+    if not values:\n+        raise ValueError(\"empty series\")\n     return sum(values) / len(values)\n \n \n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nThe function `mean` divides the sum of the list by its length. When the list is empty, the length is 0, so Python raises a `ZeroDivisionError`. The docstring says the function should raise `ValueError(\"empty series\")` for empty input, and the test checks for that, but the code never did that check. The sibling function `spread` already had the check, so `mean` was the odd one out.\n\n## Location\n`metrics/series.py:8`\n\n## Change\nAdded a guard at the top of `mean`: if `values` is empty, raise `ValueError(\"empty series\")`. This matches the pattern already used in `spread`.\n\n## Why it is correct\nThe fix addresses the cause: `mean` now checks for empty input before dividing, so the error is the documented one and not a side effect of the division. It does not change the result for any non-empty input, and it does not touch the test.\n\n## Tests\nFinal full run: 4 passed, 0 failed, 0 errors, 0 skipped.\n\n## Lesson\nWhen a function's docstring promises a specific error for bad input, validate that input explicitly instead of relying on a side effect (like dividing by zero) to fail on its own. Check sibling functions for the pattern you should follow.",
+        "error": null
+      },
+      {
+        "case_id": "04_empty_input",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 4,
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 860,
+          "cache_read_input_tokens": 9822,
+          "cache_creation_input_tokens": 612
+        },
+        "cost_usd": 0.000606,
+        "wall_time_s": 4.97,
+        "tests_passed": 4,
+        "tests_total": 4,
+        "tests_failing_before": 1,
+        "runner": "python/pytest",
+        "changes": [
+          "metrics/series.py"
+        ],
+        "patch": "--- a/metrics/series.py\n+++ b/metrics/series.py\n@@ -5,6 +5,8 @@\n \n def mean(values: Sequence[float]) -> float:\n     \"\"\"Arithmetic mean. Raises ValueError(\"empty series\") for empty input.\"\"\"\n+    if not values:\n+        raise ValueError(\"empty series\")\n     return sum(values) / len(values)\n \n \n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nThe function `mean()` computes the average by dividing the total by the number of items. When the list is empty, that number is zero, so Python raised a `ZeroDivisionError`. The function's docstring and the test expect a clearer `ValueError(\"empty series\")` in that case. The sibling function `spread()` already had this check, but `mean()` did not.\n\n## Location\n`metrics/series.py:8`\n\n## Change\nAdded a guard at the top of `mean()`: if `values` is empty, raise `ValueError(\"empty series\")`, matching `spread()`.\n\n## Why it is correct\nThe check runs before the division, so the division never sees an empty list. The error type and message now match the documented contract. This fixes the cause, not the test: the test is unchanged and the function now behaves as its docstring says.\n\n## Tests\nFinal full run: 4 passed, 0 failed, 0 errors, 0 skipped.\n\n## Lesson\nWhen a function has a documented error contract, check the edge cases (empty input, zero) before the operation that would fail on them, and keep related functions consistent with each other. Here, `spread()` had the guard and `mean()` was missing it.",
+        "error": null
+      },
+      {
+        "case_id": "05_type_coercion",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 12,
+          "output_tokens": 1119,
+          "cache_read_input_tokens": 14823,
+          "cache_creation_input_tokens": 2987
+        },
+        "cost_usd": 0.001082,
+        "wall_time_s": 6.65,
+        "tests_passed": 13,
+        "tests_total": 13,
+        "tests_failing_before": 6,
+        "runner": "python/pytest",
+        "changes": [
+          "settings/env.py"
+        ],
+        "patch": "--- a/settings/env.py\n+++ b/settings/env.py\n@@ -20,4 +20,9 @@\n     raw = config.get(key)\n     if raw is None:\n         return default\n-    return bool(raw)\n+    value = raw.strip().lower()\n+    if value in _TRUE:\n+        return True\n+    if value in _FALSE:\n+        return False\n+    raise ValueError(f\"invalid boolean for {key}: {raw!r}\")\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`get_bool` was supposed to turn text like `\"yes\"` or `\"off\"` into `True` or `False`. Instead it ran `bool(raw)`. In Python, any non-empty string is truthy, so `\"0\"`, `\"false\"`, `\"no\"`, and `\" off\"` all became `True`, and a garbage value like `\"maybe\"` also became `True` instead of raising an error. The sets `_TRUE` and `_FALSE` were defined at the top of the file but never used.\n\n## Location\n`settings/env.py:23`\n\n## Change\nReplaced `return bool(raw)` with code that strips whitespace and lowercases the value, returns `True` if it is in `_TRUE`, returns `False` if it is in `_FALSE`, and otherwise raises `ValueError` with a message naming the key and bad value.\n\n## Why it is correct\nThe fix implements the documented contract in the docstring: case-insensitive, whitespace-tolerant matching against the two accepted sets, with an error for anything else. It addresses the logic that decides the result rather than special-casing any test input. Missing keys still return `default`, as before.\n\n## Tests\nFinal full run: 13 passed, 0 failed, 0 errors, 0 skipped (exit code 0).\n\n## Lesson\nWhen a function has a documented set of accepted inputs, make sure the code actually checks against them. Relying on a language's general truthiness rule (like `bool(string)`) silently accepts everything, so defined-but-unused constants are a warning sign.",
+        "error": null
+      },
+      {
+        "case_id": "05_type_coercion",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 12,
+          "output_tokens": 1097,
+          "cache_read_input_tokens": 15645,
+          "cache_creation_input_tokens": 1965
+        },
+        "cost_usd": 0.000952,
+        "wall_time_s": 6.6,
+        "tests_passed": 13,
+        "tests_total": 13,
+        "tests_failing_before": 6,
+        "runner": "python/pytest",
+        "changes": [
+          "settings/env.py"
+        ],
+        "patch": "--- a/settings/env.py\n+++ b/settings/env.py\n@@ -20,4 +20,9 @@\n     raw = config.get(key)\n     if raw is None:\n         return default\n-    return bool(raw)\n+    value = raw.strip().lower()\n+    if value in _TRUE:\n+        return True\n+    if value in _FALSE:\n+        return False\n+    raise ValueError(f\"invalid boolean for {key}: {raw!r}\")\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`get_bool` was converting the config string to a boolean with Python's `bool(raw)`. That function returns `True` for any non-empty string, so `\"0\"`, `\"false\"`, `\"no\"`, and `\" off\"` were all treated as true. Invalid input like `\"maybe\"` was also accepted silently instead of raising an error. The file already defined `_TRUE` and `_FALSE` sets, and the docstring described the correct rules, but the code never used them.\n\n## Location\n`settings/env.py:20-23`\n\n## Change\nAfter the missing-key check, the value is now stripped of surrounding whitespace and lowercased. It is then looked up in `_TRUE` (returns `True`) or `_FALSE` (returns `False`). Anything else raises `ValueError`.\n\n## Why it is correct\nThe fix implements the documented behavior at the point where the conversion happens, so every input is handled by the same rules. It does not special-case any test value. The default still applies only when the key is missing, as before.\n\n## Tests\nFinal full run: 13 passed, 0 failed, 0 errors, 0 skipped (exit code 0).\n\n## Lesson\nUse the logic you already wrote. When a function has helper sets or a docstring describing its rules, check that the code actually uses them. Also, `bool()` on a string only tests whether it is empty, not what it says, so parsing text into a boolean needs an explicit list of accepted values.",
+        "error": null
+      },
+      {
+        "case_id": "05_type_coercion",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 12,
+          "output_tokens": 1179,
+          "cache_read_input_tokens": 17103,
+          "cache_creation_input_tokens": 734
+        },
+        "cost_usd": 0.000853,
+        "wall_time_s": 7.0,
+        "tests_passed": 13,
+        "tests_total": 13,
+        "tests_failing_before": 6,
+        "runner": "python/pytest",
+        "changes": [
+          "settings/env.py"
+        ],
+        "patch": "--- a/settings/env.py\n+++ b/settings/env.py\n@@ -20,4 +20,9 @@\n     raw = config.get(key)\n     if raw is None:\n         return default\n-    return bool(raw)\n+    value = raw.strip().lower()\n+    if value in _TRUE:\n+        return True\n+    if value in _FALSE:\n+        return False\n+    raise ValueError(f\"invalid boolean for {key!r}: {raw!r}\")\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`get_bool` converted the config string to a boolean with `bool(raw)`. In Python, any non-empty string is `True`, so `\"0\"`, `\"false\"`, `\"no\"`, and `\" off\"` all came back as `True`. The function also never checked for unrecognized text, so `\"maybe\"` was silently accepted instead of being rejected. The file already defined the sets `_TRUE` and `_FALSE` with the valid words, but nothing used them.\n\n## Location\n`settings/env.py:14-23` (the `return bool(raw)` line is at line 23)\n\n## Change\nReplaced `return bool(raw)` with logic that strips whitespace and lowercases the value, returns `True` if it is in `_TRUE`, returns `False` if it is in `_FALSE`, and otherwise raises `ValueError`.\n\n## Why it is correct\nThe function now does what its docstring says: it parses the actual words instead of checking whether the string is non-empty. Stripping and lowercasing handle the `\" off\"`, `\"False\"`, and `\" yes \"` cases. Unknown values raise an error rather than being guessed at. The fix is in the function itself, not in the tests, and no inputs are special-cased.\n\n## Tests\nFinal full run: 13 passed, 0 failed, 0 errors, 0 skipped.\n\n## Lesson\nConverting a value with a general truthiness check (`bool(x)`) is a common shortcut that silently gives wrong answers for strings like `\"false\"`. When parsing text into a type, compare against an explicit list of accepted values and reject anything else, and check that helper constants you define are actually used.",
+        "error": null
+      },
+      {
+        "case_id": "06_operator_precedence",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 12,
+          "output_tokens": 914,
+          "cache_read_input_tokens": 12272,
+          "cache_creation_input_tokens": 1709
+        },
+        "cost_usd": 0.000795,
+        "wall_time_s": 6.25,
+        "tests_passed": 4,
+        "tests_total": 4,
+        "tests_failing_before": 3,
+        "runner": "python/pytest",
+        "changes": [
+          "billing/tax.py"
+        ],
+        "patch": "--- a/billing/tax.py\n+++ b/billing/tax.py\n@@ -5,7 +5,7 @@\n \n def price_with_tax(price: float, rate: float = VAT_RATE) -> float:\n     \"\"\"Gross price including tax, rounded to cents.\"\"\"\n-    return round(price * 1 + rate, 2)\n+    return round(price * (1 + rate), 2)\n \n \n def tax_amount(price: float, rate: float = VAT_RATE) -> float:\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nThe function that calculates a price including tax added the tax *rate* to the price as if it were a flat dollar amount. For a price of 100 with the 17% rate (0.17), it returned 100.17 instead of 117. The correct math is to multiply the price by `1 + rate`, which scales it up by the tax percentage. The other tests failed for the same reason, since they compare against this function's output.\n\n## Location\n`billing/tax.py:8`\n\n## Change\nChanged `return round(price * 1 + rate, 2)` to `return round(price * (1 + rate), 2)`. The parentheses make the code add 1 to the rate first, then multiply by the price.\n\n## Why it is correct\nThe gross price is the net price plus tax, and tax is `price * rate`, so the total is `price + price * rate = price * (1 + rate)`. The fix matches that formula directly and does not special-case any test values. `tax_amount` was already correct and was left unchanged.\n\n## Tests\nFinal full run: passed=4, failed=0, errors=0, skipped=0.\n\n## Lesson\nWhen a formula has a percentage, multiply by the whole factor `(1 + rate)` rather than adding the rate to the amount. Writing out the formula with the units checked (dollars \u00d7 fraction, not dollars + fraction) catches this kind of error before it reaches tests.",
+        "error": null
+      },
+      {
+        "case_id": "06_operator_precedence",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 12,
+          "output_tokens": 956,
+          "cache_read_input_tokens": 12272,
+          "cache_creation_input_tokens": 1714
+        },
+        "cost_usd": 0.000816,
+        "wall_time_s": 6.27,
+        "tests_passed": 4,
+        "tests_total": 4,
+        "tests_failing_before": 3,
+        "runner": "python/pytest",
+        "changes": [
+          "billing/tax.py"
+        ],
+        "patch": "--- a/billing/tax.py\n+++ b/billing/tax.py\n@@ -5,7 +5,7 @@\n \n def price_with_tax(price: float, rate: float = VAT_RATE) -> float:\n     \"\"\"Gross price including tax, rounded to cents.\"\"\"\n-    return round(price * 1 + rate, 2)\n+    return round(price * (1 + rate), 2)\n \n \n def tax_amount(price: float, rate: float = VAT_RATE) -> float:\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nThe function that computes a price with tax was doing the wrong arithmetic. Tax should scale the price: a 100 price at 17% VAT should become 100 \u00d7 1.17 = 117. The code instead wrote `price * 1 + rate`, which multiplies by 1 and then adds the rate (0.17) as if it were a flat dollar amount. So 100 became 100.17.\n\n## Location\n`billing/tax.py:8`\n\n## Change\nChanged `return round(price * 1 + rate, 2)` to `return round(price * (1 + rate), 2)`. The parentheses make the code add 1 and the rate first, then multiply the price by that factor.\n\n## Why it is correct\nThe fix addresses the formula itself, not the test values. The gross price now equals price \u00d7 (1 + rate), which matches the definition of a tax-inclusive price and makes it consistent with `tax_amount` (80 + tax_amount(80) = 93.6 is now exactly what `price_with_tax(80)` returns). All three failing tests were symptoms of this single wrong expression.\n\n## Tests\nFinal full run: passed=4, failed=0, errors=0, skipped=0.\n\n## Lesson\nWhen you write a formula, check that operator precedence and grouping match the math you mean. `a * 1 + b` and `a * (1 + b)` look almost identical but give different answers. Testing with a simple known value (like 100 at 17% should be 117) catches this quickly.",
+        "error": null
+      },
+      {
+        "case_id": "06_operator_precedence",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 12,
+          "output_tokens": 956,
+          "cache_read_input_tokens": 12978,
+          "cache_creation_input_tokens": 1026
+        },
+        "cost_usd": 0.000737,
+        "wall_time_s": 6.06,
+        "tests_passed": 4,
+        "tests_total": 4,
+        "tests_failing_before": 3,
+        "runner": "python/pytest",
+        "changes": [
+          "billing/tax.py"
+        ],
+        "patch": "--- a/billing/tax.py\n+++ b/billing/tax.py\n@@ -5,7 +5,7 @@\n \n def price_with_tax(price: float, rate: float = VAT_RATE) -> float:\n     \"\"\"Gross price including tax, rounded to cents.\"\"\"\n-    return round(price * 1 + rate, 2)\n+    return round(price * (1 + rate), 2)\n \n \n def tax_amount(price: float, rate: float = VAT_RATE) -> float:\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nThe function that computes a gross price (price plus tax) had a math mistake. It wrote `price * 1 + rate`, which adds the tax rate as a flat number of currency units. Tax should be a percentage of the price, so the correct formula is price \u00d7 (1 + rate). Because of this, 100 with 17% VAT came out as 100.17 instead of 117.0.\n\n## Location\n`billing/tax.py:8`\n\n## Change\nChanged `return round(price * 1 + rate, 2)` to `return round(price * (1 + rate), 2)`. The parentheses make the code add 1 to the rate first, then multiply the price by that result.\n\n## Why it is correct\nThe gross price is the net price multiplied by one plus the rate. This matches the definition of tax as a fraction of the price. The fix is in the function itself, so it works for any price and any rate. The tests were not changed. The `tax_amount` function was already correct and is consistent with the fixed formula: `price_with_tax(p) == p + tax_amount(p)`.\n\n## Tests\nFinal full run: 4 passed, 0 failed, 0 errors, 0 skipped.\n\n## Lesson\nOperator precedence matters: `a * 1 + b` is not the same as `a * (1 + b)`. When a formula combines a value with a percentage, write the parentheses explicitly and check the result with a simple number like 100 \u00d7 17%.",
+        "error": null
+      },
+      {
+        "case_id": "07_stale_state",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 4,
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 932,
+          "cache_read_input_tokens": 9278,
+          "cache_creation_input_tokens": 1796
+        },
+        "cost_usd": 0.000784,
+        "wall_time_s": 5.98,
+        "tests_passed": 3,
+        "tests_total": 3,
+        "tests_failing_before": 2,
+        "runner": "python/pytest",
+        "changes": [
+          "textstats/counter.py"
+        ],
+        "patch": "--- a/textstats/counter.py\n+++ b/textstats/counter.py\n@@ -2,7 +2,8 @@\n \n \n class WordCounter:\n-    counts: dict[str, int] = {}\n+    def __init__(self) -> None:\n+        self.counts: dict[str, int] = {}\n \n     def add_text(self, text: str) -> None:\n         for word in text.lower().split():\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nIn `WordCounter`, the `counts` dictionary was declared at class level (`counts: dict[str, int] = {}`), not inside each object. In Python, that one dictionary belongs to the class and every `WordCounter` uses it. So when one counter recorded words, every other counter saw them too. A brand-new counter already reported a total of 8 because the words from earlier tests were still in the shared dictionary.\n\n## Location\n`textstats/counter.py:5`\n\n## Change\nRemoved the class-level dictionary and added an `__init__` method that creates a fresh `self.counts = {}` for each new instance.\n\n## Why it is correct\nEach `WordCounter` now owns its own dictionary, so counts can't leak between objects. This fixes the cause, not the symptom: the tests were not changed and no special values were handled. The method bodies still use `self.counts`, so they work unchanged.\n\n## Tests\nLast full run: 3 passed, 0 failed, 0 errors, 0 skipped.\n\n## Lesson\nNever give a class a mutable default such as a list or dict as a class attribute, because every instance will share it. Create mutable state per object in `__init__`.",
+        "error": null
+      },
+      {
+        "case_id": "07_stale_state",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 6,
+        "usage": {
+          "input_tokens": 14,
+          "output_tokens": 1072,
+          "cache_read_input_tokens": 15379,
+          "cache_creation_input_tokens": 1925
+        },
+        "cost_usd": 0.000932,
+        "wall_time_s": 6.89,
+        "tests_passed": 3,
+        "tests_total": 3,
+        "tests_failing_before": 2,
+        "runner": "python/pytest",
+        "changes": [
+          "textstats/counter.py"
+        ],
+        "patch": "--- a/textstats/counter.py\n+++ b/textstats/counter.py\n@@ -2,7 +2,8 @@\n \n \n class WordCounter:\n-    counts: dict[str, int] = {}\n+    def __init__(self) -> None:\n+        self.counts: dict[str, int] = {}\n \n     def add_text(self, text: str) -> None:\n         for word in text.lower().split():\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`WordCounter` declared its word dictionary as a class attribute (`counts = {}` in the class body), not as something each object creates for itself. In Python, a class attribute is one object shared by every instance. So when one counter added words, every other counter saw them too. That is why a brand-new counter reported a total of 8: it was reading the dictionary already filled by the other test's counter.\n\n## Location\n`textstats/counter.py:5`\n\n## Change\nI replaced the class-level `counts: dict[str, int] = {}` with an `__init__` method that sets `self.counts = {}`. Each `WordCounter()` now gets its own fresh dictionary. The rest of the class is unchanged.\n\n## Why it is correct\nThe bug was about where the dictionary lived, not about how words were counted. Putting the dictionary on the instance means each counter has separate state. A new counter starts empty, and counting in one no longer changes another. This is the correct fix for the general problem, not a workaround for these particular tests.\n\n## Tests\nFinal full run: 3 passed, 0 failed, 0 errors, 0 skipped.\n\n## Lesson\nNever create a mutable object (list, dict, set) directly in a class body if it is meant to belong to each instance. Create it in `__init__` using `self.`, because class-level objects are shared by all instances.",
+        "error": null
+      },
+      {
+        "case_id": "07_stale_state",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 12,
+          "output_tokens": 1019,
+          "cache_read_input_tokens": 12119,
+          "cache_creation_input_tokens": 2031
+        },
+        "cost_usd": 0.000886,
+        "wall_time_s": 6.69,
+        "tests_passed": 3,
+        "tests_total": 3,
+        "tests_failing_before": 2,
+        "runner": "python/pytest",
+        "changes": [
+          "textstats/counter.py"
+        ],
+        "patch": "--- a/textstats/counter.py\n+++ b/textstats/counter.py\n@@ -2,7 +2,8 @@\n \n \n class WordCounter:\n-    counts: dict[str, int] = {}\n+    def __init__(self) -> None:\n+        self.counts: dict[str, int] = {}\n \n     def add_text(self, text: str) -> None:\n         for word in text.lower().split():\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`WordCounter` declared `counts` as a class attribute with a default value of `{}`. In Python, that one dictionary belongs to the class and is shared by every instance. When one counter added words, the others saw those same words. So a brand-new counter already reported 8 words from earlier tests.\n\n## Location\n`textstats/counter.py:5`\n\n## Change\nRemoved the class-level `counts = {}` and added an `__init__` method that creates a fresh `self.counts = {}` for each new counter.\n\n## Why it is correct\nEach `WordCounter()` now gets its own dictionary when it is created, so counters no longer share data. This fixes the cause, not the symptom: the tests still check the real counts, and no test was changed.\n\n## Tests\nLast full run: passed=3, failed=0, errors=0, skipped=0.\n\n## Lesson\nNever put a mutable value such as a list, dict, or set directly in a class body as a default for instance data, because Python shares it across all objects. Create mutable state per object inside `__init__`.",
+        "error": null
+      },
+      {
+        "case_id": "08_cross_file_week_start",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 6,
+        "usage": {
+          "input_tokens": 14,
+          "output_tokens": 1094,
+          "cache_read_input_tokens": 17150,
+          "cache_creation_input_tokens": 2576
+        },
+        "cost_usd": 0.001042,
+        "wall_time_s": 6.92,
+        "tests_passed": 4,
+        "tests_total": 4,
+        "tests_failing_before": 2,
+        "runner": "python/pytest",
+        "changes": [
+          "timesheet/dates.py"
+        ],
+        "patch": "--- a/timesheet/dates.py\n+++ b/timesheet/dates.py\n@@ -5,7 +5,7 @@\n \n def week_start(day: date) -> date:\n     \"\"\"The Monday of the ISO week containing `day`.\"\"\"\n-    return day - timedelta(days=day.weekday() + 1)\n+    return day - timedelta(days=day.weekday())\n \n \n def iso_week_label(day: date) -> str:\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nThe function that finds the Monday of a given date was subtracting one day too many. Python counts weekdays from Monday = 0, so a Tuesday has `weekday() == 1`. The code subtracted `weekday() + 1`, which turned Tuesday 17 Nov into Sunday 15 Nov instead of Monday 16 Nov. Every date was pushed back one day, so weeks were labelled with the wrong Sunday and the totals did not match the expected Monday keys.\n\n## Location\n`timesheet/dates.py:8`\n\n## Change\nChanged `day - timedelta(days=day.weekday() + 1)` to `day - timedelta(days=day.weekday())`.\n\n## Why it is correct\nThe docstring says the function returns the Monday of the ISO week containing `day`. Subtracting `weekday()` days does exactly that for every day of the week: Monday subtracts 0 and stays put, and Sunday (weekday 6) goes back 6 days to the Monday before. The fix is in the shared helper, so `weekly_totals` now gets correct keys without any change to its logic. No special-casing of test values was needed.\n\n## Tests\nFinal full run: 4 passed, 0 failed, 0 errors, 0 skipped.\n\n## Lesson\nWhen you use a library's zero-based convention (like `weekday()`, where Monday is 0), check the offset against a known example before writing arithmetic around it. Adding a \"+1\" that copies a one-based habit silently shifts every result by a day.",
+        "error": null
+      },
+      {
+        "case_id": "08_cross_file_week_start",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 6,
+        "usage": {
+          "input_tokens": 14,
+          "output_tokens": 1068,
+          "cache_read_input_tokens": 19112,
+          "cache_creation_input_tokens": 588
+        },
+        "cost_usd": 0.0008,
+        "wall_time_s": 6.75,
+        "tests_passed": 4,
+        "tests_total": 4,
+        "tests_failing_before": 2,
+        "runner": "python/pytest",
+        "changes": [
+          "timesheet/dates.py"
+        ],
+        "patch": "--- a/timesheet/dates.py\n+++ b/timesheet/dates.py\n@@ -5,7 +5,7 @@\n \n def week_start(day: date) -> date:\n     \"\"\"The Monday of the ISO week containing `day`.\"\"\"\n-    return day - timedelta(days=day.weekday() + 1)\n+    return day - timedelta(days=day.weekday())\n \n \n def iso_week_label(day: date) -> str:\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nWeeks are supposed to start on Monday, and the function that finds a day's week start was subtracting one extra day. In Python, `date.weekday()` returns 0 for Monday, 1 for Tuesday, and so on. The code subtracted `weekday() + 1`, so every date was moved back one day too far. Tuesday 2026-11-17 became Sunday 2026-11-15 instead of Monday 2026-11-16, and Monday itself was moved back to the previous Sunday. That is why the weekly totals were keyed to the wrong dates.\n\n## Location\n`timesheet/dates.py:8`\n\n## Change\nChanged `day - timedelta(days=day.weekday() + 1)` to `day - timedelta(days=day.weekday())`.\n\n## Why it is correct\n`weekday()` is already the number of days since Monday, so subtracting it gives the Monday of that ISO week. Checking the cases: Tuesday 11-17 minus 1 day gives Monday 11-16, and Monday 11-23 minus 0 days stays 11-23. This fixes the date logic at its source, so `weekly_totals` needed no changes. The tests were not modified.\n\n## Tests\nFinal full run: 4 passed, 0 failed.\n\n## Lesson\nWhen you use a library's zero-based or off-by-one convention (here, `weekday()` starts at 0 for Monday), check the value with a known example before adding or subtracting a constant. A single wrong offset can look plausible but shift every result.",
+        "error": null
+      },
+      {
+        "case_id": "08_cross_file_week_start",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 6,
+        "usage": {
+          "input_tokens": 14,
+          "output_tokens": 1123,
+          "cache_read_input_tokens": 19112,
+          "cache_creation_input_tokens": 615
+        },
+        "cost_usd": 0.000831,
+        "wall_time_s": 6.95,
+        "tests_passed": 4,
+        "tests_total": 4,
+        "tests_failing_before": 2,
+        "runner": "python/pytest",
+        "changes": [
+          "timesheet/dates.py"
+        ],
+        "patch": "--- a/timesheet/dates.py\n+++ b/timesheet/dates.py\n@@ -5,7 +5,7 @@\n \n def week_start(day: date) -> date:\n     \"\"\"The Monday of the ISO week containing `day`.\"\"\"\n-    return day - timedelta(days=day.weekday() + 1)\n+    return day - timedelta(days=day.weekday())\n \n \n def iso_week_label(day: date) -> str:\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nWeeks are supposed to start on Monday. The function that finds the Monday of a given date, `week_start`, subtracted one extra day. Python counts `weekday()` from 0 for Monday through 6 for Sunday, so the correct number of days to step back is exactly `weekday()`. With the extra `+ 1`, every date was pushed back to the Sunday before its week. Tuesday 17 Nov 2026 became Sunday 15 Nov instead of Monday 16 Nov, and Sunday 22 Nov was grouped under the wrong Monday.\n\n## Location\n`timesheet/dates.py:8`\n\n## Change\nChanged `day - timedelta(days=day.weekday() + 1)` to `day - timedelta(days=day.weekday())`.\n\n## Why it is correct\nThe function's docstring says it returns \"the Monday of the ISO week containing `day`\", and the module header says weeks start on Monday. Subtracting `weekday()` days gives exactly that Monday for every day of the week, including Monday itself (offset 0). The fix is in the helper that all weekly grouping depends on, so `weekly_totals` now groups correctly without any change to the report code. The tests were not touched.\n\n## Tests\nFinal full run: 4 passed, 0 failed.\n\n## Lesson\nWhen you use a library's numbering convention (here, Python's `weekday()` starts at 0 for Monday), check the offset against a known example, such as a Monday that should map to itself, before adding \"fudge\" constants. An off-by-one like this is easy to miss and is best caught with boundary cases.",
+        "error": null
+      },
+      {
+        "case_id": "09_cross_file_bulk_tiers",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 12,
+          "output_tokens": 1016,
+          "cache_read_input_tokens": 14169,
+          "cache_creation_input_tokens": 2837
+        },
+        "cost_usd": 0.001006,
+        "wall_time_s": 6.59,
+        "tests_passed": 6,
+        "tests_total": 6,
+        "tests_failing_before": 4,
+        "runner": "python/pytest",
+        "changes": [
+          "orders/pricing.py"
+        ],
+        "patch": "--- a/orders/pricing.py\n+++ b/orders/pricing.py\n@@ -7,7 +7,7 @@\n def bulk_discount_percent(quantity: int) -> int:\n     \"\"\"Discount for buying at least a tier's minimum quantity.\"\"\"\n     for minimum, percent in BULK_TIERS:\n-        if quantity > minimum:\n+        if quantity >= minimum:\n             return percent\n     return 0\n \n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nBulk discounts are supposed to start when an order reaches a tier's minimum quantity, so buying exactly 10, 50, or 100 units should qualify. The code used a strict \"greater than\" check, so an order of exactly 10 units missed the 5% tier, exactly 50 missed the 10% tier, and exactly 100 missed the 15% tier. Those orders were priced at full price, which is why the totals came out too high (for example, 10 pads at $4 came to $40 instead of $38).\n\n## Location\n`orders/pricing.py:10`\n\n## Change\nChanged `if quantity > minimum:` to `if quantity >= minimum:` in `bulk_discount_percent`.\n\n## Why it is correct\nThe fix addresses the comparison that decides which tier applies, which is the source of the wrong prices. It matches the function's own docstring (\"at least a tier's minimum quantity\") and the boundary tests. Quantities above the boundary still get the same discount, and quantities below every tier still get none, so the other tests keep passing. No test or config file was touched.\n\n## Tests\nFinal full run: 6 passed, 0 failed.\n\n## Lesson\nWhen a rule says \"at least\" or \"up to,\" check whether the boundary value is included, because `>` and `>=` differ exactly at the edge. Test the boundary values themselves, not only the values on either side of them.",
+        "error": null
+      },
+      {
+        "case_id": "09_cross_file_bulk_tiers",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 6,
+        "usage": {
+          "input_tokens": 14,
+          "output_tokens": 1032,
+          "cache_read_input_tokens": 18802,
+          "cache_creation_input_tokens": 1960
+        },
+        "cost_usd": 0.00095,
+        "wall_time_s": 6.93,
+        "tests_passed": 6,
+        "tests_total": 6,
+        "tests_failing_before": 4,
+        "runner": "python/pytest",
+        "changes": [
+          "orders/pricing.py"
+        ],
+        "patch": "--- a/orders/pricing.py\n+++ b/orders/pricing.py\n@@ -7,7 +7,7 @@\n def bulk_discount_percent(quantity: int) -> int:\n     \"\"\"Discount for buying at least a tier's minimum quantity.\"\"\"\n     for minimum, percent in BULK_TIERS:\n-        if quantity > minimum:\n+        if quantity >= minimum:\n             return percent\n     return 0\n \n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nVolume discounts are supposed to apply when a customer buys *at least* the tier's minimum quantity. The code checked `quantity > minimum` (strictly greater than), so a customer who buys exactly 10, 50, or 100 units missed the discount. The order-total test failed for the same reason: its pad line has quantity 10, so it was charged full price (40 instead of 38).\n\n## Location\n`orders/pricing.py:10`\n\n## Change\nChanged the comparison in `bulk_discount_percent` from `>` to `>=`.\n\n## Why it is correct\nThe fix matches the function's own docstring (\"at least a tier's minimum\") and the stated rule that discounts apply exactly at each boundary. It corrects the comparison for every tier, not just the tested values, so it is a general fix rather than a special case.\n\n## Tests\nFinal full run: 6 passed, 0 failed.\n\n## Lesson\nWhen a rule says \"at least\" or \"at most\", check whether the boundary value is included, because `>` and `>=` differ only at the edge and are easy to confuse. Test the exact boundary values, not just values safely inside a range.",
+        "error": null
+      },
+      {
+        "case_id": "09_cross_file_bulk_tiers",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 12,
+          "output_tokens": 1064,
+          "cache_read_input_tokens": 16395,
+          "cache_creation_input_tokens": 633
+        },
+        "cost_usd": 0.000776,
+        "wall_time_s": 6.87,
+        "tests_passed": 6,
+        "tests_total": 6,
+        "tests_failing_before": 4,
+        "runner": "python/pytest",
+        "changes": [
+          "orders/pricing.py"
+        ],
+        "patch": "--- a/orders/pricing.py\n+++ b/orders/pricing.py\n@@ -7,7 +7,7 @@\n def bulk_discount_percent(quantity: int) -> int:\n     \"\"\"Discount for buying at least a tier's minimum quantity.\"\"\"\n     for minimum, percent in BULK_TIERS:\n-        if quantity > minimum:\n+        if quantity >= minimum:\n             return percent\n     return 0\n \n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nThe bulk-discount lookup in `orders/pricing.py` used a strict \"greater than\" check. Its docstring says a discount applies when you buy \"at least\" a tier's minimum, so a quantity of exactly 10, 50, or 100 should qualify. With `>`, those exact amounts missed their discount. For example, 10 pens at $2.00 should cost $19.00 (5% off) but cost $20.00. The order test had the same problem: 10 pads at $4.00 should be $38.00 but came out as $40.00.\n\n## Location\n`orders/pricing.py:10`\n\n## Change\nChanged `if quantity > minimum:` to `if quantity >= minimum:`.\n\n## Why it is correct\nThe tiers are defined as minimum quantities, so the comparison has to include the minimum itself. The fix is in the general rule, not tied to specific test values. Quantities above a tier still get that tier's discount, and quantities below the lowest tier still get none. The `>=` change also matches the documented behavior.\n\n## Tests\nFinal full run: 6 passed, 0 failed, 0 errors, 0 skipped (exit code 0).\n\n## Lesson\nWhen a rule is written as \"at least N\" or \"N or more\", check the comparison operator carefully: the boundary value itself must be included, so use `>=` rather than `>`. Boundary-value tests like the ones here are the fastest way to catch this kind of off-by-one mistake.",
+        "error": null
+      },
+      {
+        "case_id": "10_rounding_trap",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 12,
+          "output_tokens": 1396,
+          "cache_read_input_tokens": 13621,
+          "cache_creation_input_tokens": 2836
+        },
+        "cost_usd": 0.00119,
+        "wall_time_s": 8.0,
+        "tests_passed": 10,
+        "tests_total": 10,
+        "tests_failing_before": 5,
+        "runner": "python/pytest",
+        "changes": [
+          "invoicing/money.py"
+        ],
+        "patch": "--- a/invoicing/money.py\n+++ b/invoicing/money.py\n@@ -3,7 +3,9 @@\n \n def round_money(value: float) -> float:\n     \"\"\"Round to 2 decimals, halves away from zero (2.675 -> 2.68, -2.675 -> -2.68).\"\"\"\n-    return round(value, 2)\n+    from decimal import ROUND_HALF_UP, Decimal\n+\n+    return float(Decimal(str(value)).quantize(Decimal(\"0.01\"), rounding=ROUND_HALF_UP))\n \n \n def format_money(value: float) -> str:\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nThe function `round_money` used Python's built-in `round(value, 2)`. That function works on the binary floating-point version of a number, and most decimals can't be stored exactly in binary. For example, `2.675` is really stored as about `2.67499999...`, so it rounds down to `2.67`. The function is supposed to round halves away from zero on the decimal value (`2.675` \u2192 `2.68`), so the result was wrong. `format_money` calls `round_money`, so it inherited the same error.\n\n## Location\n`invoicing/money.py:6`\n\n## Change\nI replaced `return round(value, 2)` with code that converts the float to a string (`str(value)`, which gives the value as written, such as `\"2.675\"`). It then builds a `Decimal` from that string and quantizes it to two places using `ROUND_HALF_UP`. In Python's `decimal` module, `ROUND_HALF_UP` rounds ties away from zero. The result is converted back to a `float`.\n\n## Why it is correct\nThe fix addresses the cause, not the symptom. Decimal arithmetic works on the base-10 digits, so a tie like `2.675` is seen as exactly halfway and rounds up in magnitude. `-2.675` becomes `-2.68`, and `-0.004` still gives zero, which the test accepts. No test inputs are special-cased. `format_money` picks up the correction automatically because it calls `round_money`.\n\n## Tests\nFinal full run: 10 passed, 0 failed, 0 errors, 0 skipped (exit code 0).\n\n## Lesson\nFloating-point numbers can't represent most decimal fractions exactly, so built-in rounding can surprise you on values like `2.675`. For money or any rule defined on decimal digits, use `decimal.Decimal` with an explicit rounding mode, and check the rounding rule against the spec.",
+        "error": null
+      },
+      {
+        "case_id": "10_rounding_trap",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 12,
+          "output_tokens": 1539,
+          "cache_read_input_tokens": 15558,
+          "cache_creation_input_tokens": 1200
+        },
+        "cost_usd": 0.001076,
+        "wall_time_s": 8.37,
+        "tests_passed": 10,
+        "tests_total": 10,
+        "tests_failing_before": 5,
+        "runner": "python/pytest",
+        "changes": [
+          "invoicing/money.py"
+        ],
+        "patch": "--- a/invoicing/money.py\n+++ b/invoicing/money.py\n@@ -1,9 +1,13 @@\n \"\"\"Money helpers. Amounts are rounded half away from zero, to the cent.\"\"\"\n+\n+from decimal import ROUND_HALF_UP, Decimal\n \n \n def round_money(value: float) -> float:\n     \"\"\"Round to 2 decimals, halves away from zero (2.675 -> 2.68, -2.675 -> -2.68).\"\"\"\n-    return round(value, 2)\n+    # Go through the decimal string form so binary float error (2.675 is\n+    # really 2.67499...) does not turn a visible half into a round-down.\n+    return float(Decimal(repr(value)).quantize(Decimal(\"0.01\"), rounding=ROUND_HALF_UP))\n \n \n def format_money(value: float) -> str:\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`round_money` used Python's built-in `round(value, 2)`. That function works on the exact binary value of a float, and it rounds exact ties to the even digit. The number `2.675` is actually stored as about `2.67499999...`, so it rounds down to `2.67`. The same thing happened to `1.005`, `0.125` and `-2.675`. The docstring and tests require \"half away from zero\" on the decimal value a person would write, so the built-in function was the wrong tool.\n\n## Location\n`invoicing/money.py:4`\n\n## Change\n`round_money` now converts the value to its shortest decimal string with `Decimal(repr(value))`. It then calls `quantize(Decimal(\"0.01\"), rounding=ROUND_HALF_UP)` and converts the result back to `float`. I added the `decimal` import at the top of the file.\n\n## Why it is correct\nDecimal arithmetic works on the digits the number was written with, so `2.675` stays `2.675` and the half is seen as a half. `ROUND_HALF_UP` rounds ties away from zero for positive and negative values, which is the documented rule. `format_money` calls `round_money`, so it is fixed by the same change. No test inputs are special-cased.\n\n## Tests\nFinal full run: 10 passed, 0 failed, 0 errors, 0 skipped (exit code 0).\n\n## Lesson\nFloating-point numbers cannot store most decimal fractions exactly, so rounding money with `round()` on floats can give surprising results at exact halves. For money, do the rounding with `Decimal` and an explicit rounding mode that matches the business rule.",
+        "error": null
+      },
+      {
+        "case_id": "10_rounding_trap",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 12,
+          "output_tokens": 1690,
+          "cache_read_input_tokens": 15558,
+          "cache_creation_input_tokens": 1246
+        },
+        "cost_usd": 0.001158,
+        "wall_time_s": 9.08,
+        "tests_passed": 10,
+        "tests_total": 10,
+        "tests_failing_before": 5,
+        "runner": "python/pytest",
+        "changes": [
+          "invoicing/money.py"
+        ],
+        "patch": "--- a/invoicing/money.py\n+++ b/invoicing/money.py\n@@ -1,9 +1,12 @@\n \"\"\"Money helpers. Amounts are rounded half away from zero, to the cent.\"\"\"\n+\n+from decimal import ROUND_HALF_UP, Decimal\n \n \n def round_money(value: float) -> float:\n     \"\"\"Round to 2 decimals, halves away from zero (2.675 -> 2.68, -2.675 -> -2.68).\"\"\"\n-    return round(value, 2)\n+    exact = Decimal(repr(value))\n+    return float(exact.quantize(Decimal(\"0.01\"), rounding=ROUND_HALF_UP))\n \n \n def format_money(value: float) -> str:\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`round_money` called Python's built-in `round(value, 2)`. That function works on the float's exact binary value, and it rounds exact ties to the nearest even digit. The number `2.675` cannot be stored exactly in binary. It is really about `2.67499999...`, so it rounds down to `2.67`. The same thing happens to `1.005` and `-2.675`. The rule the project wants is different: round the amount as written in decimal, with halves going away from zero, so `2.675` becomes `2.68`.\n\n## Location\n`invoicing/money.py:6` (the `round_money` function body)\n\n## Change\nReplaced `round(value, 2)` with a `Decimal` calculation. It converts the value with `Decimal(repr(value))`, which keeps the number as written (`\"2.675\"`). It then quantizes to two places using `ROUND_HALF_UP`, which in the `decimal` module rounds halves away from zero, and converts back to `float`. I also added the `from decimal import ROUND_HALF_UP, Decimal` import at the top of the file.\n\n## Why it is correct\nThe fix changes the rounding rule itself, not the test expectations or the individual inputs. `format_money` calls `round_money`, so it is fixed by the same change. The decimal-based rounding gives the documented results: `2.675 \u2192 2.68`, `-2.675 \u2192 -2.68`, `1.005 \u2192 1.01`, `0.125 \u2192 0.13`, and `2.6749 \u2192 2.67`. `-0.004` still gives a zero value, which the test accepts. `invoicing/invoice.py` uses the same function, and its tests still pass.\n\n## Tests\nFinal full run: 10 passed, 0 failed, 0 errors, 0 skipped (exit code 0).\n\n## Lesson\nFloats cannot represent most decimal values exactly, so rounding money with float arithmetic (`round`, or `%` formatting) can give results that differ from the rounding rule people expect. For money, convert to `Decimal` from the value's written form and pick the rounding mode explicitly.",
+        "error": null
+      },
+      {
+        "case_id": "11_js_leaderboard_sort",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 12,
+          "output_tokens": 907,
+          "cache_read_input_tokens": 12984,
+          "cache_creation_input_tokens": 2518
+        },
+        "cost_usd": 0.000899,
+        "wall_time_s": 5.76,
+        "tests_passed": 4,
+        "tests_total": 4,
+        "tests_failing_before": 1,
+        "runner": "javascript/node",
+        "changes": [
+          "src/leaderboard.js"
+        ],
+        "patch": "--- a/src/leaderboard.js\n+++ b/src/leaderboard.js\n@@ -7,7 +7,7 @@\n  * @returns {number[]}\n  */\n export function topScores(scores, n) {\n-  return [...scores].sort((a, b) => a - b).slice(0, n);\n+  return [...scores].sort((a, b) => b - a).slice(0, n);\n }\n \n /** Average score, or 0 for an empty list. */\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`topScores` is supposed to return the highest scores first. It copies the array and sorts it with `(a, b) => a - b`, which orders numbers from smallest to largest. Taking the first `n` items of that list gives the lowest scores, not the highest. The test saw `[40, 70]` instead of `[95, 88]`.\n\n## Location\n`src/leaderboard.js:10`\n\n## Change\nChanged the sort comparator from `(a, b) => a - b` to `(a, b) => b - a`, so the array is sorted largest-first before slicing.\n\n## Why it is correct\nThe function's docstring and the test both require the highest scores in descending order. Sorting descending and then taking the first `n` items returns exactly those. The copy via `[...scores]` is kept, so the input is still not mutated, which the second test checks. The fix changes the general sort order, not any specific input.\n\n## Tests\nFinal full run: passed=4, failed=0, errors=0, skipped=0, exit_code=0.\n\n## Lesson\nWhen a sort feeds a \"top N\" or \"first N\" result, check the sort direction against the requirement. The comparator `a - b` sorts ascending, and `b - a` sorts descending. Reading the comparator is a quick way to catch this kind of bug.",
+        "error": null
+      },
+      {
+        "case_id": "11_js_leaderboard_sort",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 12,
+          "output_tokens": 1006,
+          "cache_read_input_tokens": 13132,
+          "cache_creation_input_tokens": 2575
+        },
+        "cost_usd": 0.000957,
+        "wall_time_s": 6.43,
+        "tests_passed": 4,
+        "tests_total": 4,
+        "tests_failing_before": 1,
+        "runner": "javascript/node",
+        "changes": [
+          "src/leaderboard.js"
+        ],
+        "patch": "--- a/src/leaderboard.js\n+++ b/src/leaderboard.js\n@@ -7,7 +7,7 @@\n  * @returns {number[]}\n  */\n export function topScores(scores, n) {\n-  return [...scores].sort((a, b) => a - b).slice(0, n);\n+  return [...scores].sort((a, b) => b - a).slice(0, n);\n }\n \n /** Average score, or 0 for an empty list. */\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`topScores` is supposed to return the highest scores, highest first. It sorted the list from smallest to largest, then kept the first `n` entries. That gives the smallest scores, not the largest. For `[40, 95, 70, 88]` with `n = 2`, the sorted list is `[40, 70, 88, 95]`, so it returned `[40, 70]`, which is exactly what the failing test showed.\n\n## Location\n`src/leaderboard.js:10`\n\n## Change\nChanged the sort comparator from `(a, b) => a - b` (ascending) to `(b, a) => ...`, written as `(a, b) => b - a` (descending). The sort now puts the largest scores first, and `slice(0, n)` keeps the top `n`. The copy made by `[...scores]` is still sorted, so the input is not modified.\n\n## Why it is correct\nThe function's contract is \"the `n` highest scores, highest first.\" Sorting descending and then taking the first `n` items matches that contract directly. The fix changes the sort direction, not the test or the output, so it works for any input rather than only the test's values.\n\n## Tests\nFinal full run: passed=4, failed=0, errors=0, skipped=0, exit_code=0.\n\n## Lesson\nWhen you take \"the top N\" after sorting, check the sort direction first: ascending order followed by `slice(0, n)` gives the bottom N. Read the function's doc comment and trace one small example by hand before trusting the output.",
+        "error": null
+      },
+      {
+        "case_id": "11_js_leaderboard_sort",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 12,
+          "output_tokens": 1001,
+          "cache_read_input_tokens": 13002,
+          "cache_creation_input_tokens": 2518
+        },
+        "cost_usd": 0.000946,
+        "wall_time_s": 5.87,
+        "tests_passed": 4,
+        "tests_total": 4,
+        "tests_failing_before": 1,
+        "runner": "javascript/node",
+        "changes": [
+          "src/leaderboard.js"
+        ],
+        "patch": "--- a/src/leaderboard.js\n+++ b/src/leaderboard.js\n@@ -7,7 +7,7 @@\n  * @returns {number[]}\n  */\n export function topScores(scores, n) {\n-  return [...scores].sort((a, b) => a - b).slice(0, n);\n+  return [...scores].sort((a, b) => b - a).slice(0, n);\n }\n \n /** Average score, or 0 for an empty list. */\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`topScores` is supposed to return the highest scores, highest first. It sorted the list with `(a, b) => a - b`, which puts numbers in ascending order (smallest first). Then `slice(0, n)` took the first `n` items, which are the smallest scores. For `[40, 95, 70, 88]` with `n = 2`, the sorted list was `[40, 70, 88, 95]`, so the function returned `[40, 70]` instead of `[95, 88]`.\n\n## Location\n`src/leaderboard.js:10`\n\n## Change\nChanged the sort comparator from `(a, b) => a - b` to `(b, a) => ...`, written as `(a, b) => b - a`, so the list sorts largest first before slicing.\n\n## Why it is correct\nThe function now sorts in descending order, so `slice(0, n)` takes the `n` largest values, which is what the name and doc comment promise. It still copies the input with `[...scores]` before sorting, so the caller's array is not modified, and the \"does not modify the input\" test still passes. The averaging function was not involved and was not changed.\n\n## Tests\nFinal full run: 4 passed, 0 failed, 0 errors, 0 skipped (exit code 0).\n\n## Lesson\nWhen you sort and then take a slice, check the sort direction first, because `a - b` sorts ascending and `b - a` sorts descending. Test the function with an unsorted input whose correct answer is clearly visible, so a reversed order shows up immediately.",
+        "error": null
+      },
+      {
+        "case_id": "12_go_pagination",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 12,
+          "output_tokens": 891,
+          "cache_read_input_tokens": 11834,
+          "cache_creation_input_tokens": 1893
+        },
+        "cost_usd": 0.000802,
+        "wall_time_s": 6.06,
+        "tests_passed": 4,
+        "tests_total": 4,
+        "tests_failing_before": 1,
+        "runner": "go/go-test",
+        "changes": [
+          "pager.go"
+        ],
+        "patch": "--- a/pager.go\n+++ b/pager.go\n@@ -10,7 +10,7 @@\n \tif start >= len(items) {\n \t\treturn nil\n \t}\n-\tend := start + size - 1\n+\tend := start + size\n \tif end > len(items) {\n \t\tend = len(items)\n \t}\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`Page` works out where a page ends by taking the start position and adding `size - 1`. In Go, a slice's end index is exclusive, so a page of size 2 starting at index 0 should stop at index 2. The code stopped at index 1, so every full page lost its last item. The first page came back as `[a]` instead of `[a b]`. The last-page test passed only by luck: the clamp to `len(items)` hid the same error there.\n\n## Location\n`pager.go:13`\n\n## Change\nChanged `end := start + size - 1` to `end := start + size`.\n\n## Why it is correct\nThe page covers `size` items starting at `start`, so the exclusive end is `start + size`. The existing clamp to `len(items)` still handles the final partial page. This fixes the calculation itself rather than special-casing any test input.\n\n## Tests\nFinal full run: passed=4, failed=0, errors=0, exit_code=0.\n\n## Lesson\nWhen slicing with half-open ranges (start inclusive, end exclusive), the end index is the start plus the count, with no extra `- 1`. Check boundary cases where a bug can hide, such as the last partial page, and also check a full page.",
+        "error": null
+      },
+      {
+        "case_id": "12_go_pagination",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 12,
+          "output_tokens": 943,
+          "cache_read_input_tokens": 13023,
+          "cache_creation_input_tokens": 746
+        },
+        "cost_usd": 0.000696,
+        "wall_time_s": 6.07,
+        "tests_passed": 4,
+        "tests_total": 4,
+        "tests_failing_before": 1,
+        "runner": "go/go-test",
+        "changes": [
+          "pager.go"
+        ],
+        "patch": "--- a/pager.go\n+++ b/pager.go\n@@ -10,7 +10,7 @@\n \tif start >= len(items) {\n \t\treturn nil\n \t}\n-\tend := start + size - 1\n+\tend := start + size\n \tif end > len(items) {\n \t\tend = len(items)\n \t}\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`Page` works out where a page ends with the wrong formula. A slice's end index is exclusive, so a page of `size` items starting at `start` must end at `start + size`. The code used `start + size - 1`, which leaves one item off every full page. Page 1 of size 2 became `[a]` instead of `[a b]`. The last-page test passed only by accident: the clamp to `len(items)` hid the error there.\n\n## Location\n`pager.go:13`\n\n## Change\nChanged `end := start + size - 1` to `end := start + size`.\n\n## Why it is correct\nThe start index is inclusive and the end index is exclusive, so `items[start:start+size]` is exactly one page. The existing clamp `if end > len(items)` still trims the final partial page. This fixes the formula itself, not any particular input.\n\n## Tests\nFinal full run: passed=4, failed=0, errors=0, exit_code=0.\n\n## Lesson\nWhen you slice with `[start:end]`, remember the end index is exclusive, so a block of `n` items is `[start : start+n]`, not `start+n-1`. Check the boundary on a full page, not only on a partial one, because a clamp can hide an off-by-one.",
+        "error": null
+      },
+      {
+        "case_id": "12_go_pagination",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 12,
+          "output_tokens": 932,
+          "cache_read_input_tokens": 13023,
+          "cache_creation_input_tokens": 691
+        },
+        "cost_usd": 0.000684,
+        "wall_time_s": 5.91,
+        "tests_passed": 4,
+        "tests_total": 4,
+        "tests_failing_before": 1,
+        "runner": "go/go-test",
+        "changes": [
+          "pager.go"
+        ],
+        "patch": "--- a/pager.go\n+++ b/pager.go\n@@ -10,7 +10,7 @@\n \tif start >= len(items) {\n \t\treturn nil\n \t}\n-\tend := start + size - 1\n+\tend := start + size\n \tif end > len(items) {\n \t\tend = len(items)\n \t}\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`Page` works out which items belong on a page by picking a start position and an end position. The end position was calculated as `start + size - 1`, which is one less than the number of items the page should hold. Go slices are end-exclusive, so `items[start:end]` stopped one item early. Page 1 with size 2 returned only `[\"a\"]` instead of `[\"a\", \"b\"]`. The last partial page looked correct only by coincidence, because the clamp to `len(items)` hid the error there.\n\n## Location\n`pager.go:13`\n\n## Change\nChanged `end := start + size - 1` to `end := start + size`.\n\n## Why it is correct\nThe slice `items[start:start+size]` contains exactly `size` items, which is what a page should hold. The existing clamp on the next lines still trims the final partial page to the end of the list, so out-of-range and partial-page behaviour is unchanged. This fixes the calculation itself rather than special-casing any test input.\n\n## Tests\nLast full run: passed=4, failed=0, errors=0, exit_code=0.\n\n## Lesson\nWhen you slice with `[start:end]`, remember that `end` is exclusive, so a page of `size` items ends at `start + size`. Check your boundary arithmetic with a small concrete example, such as the first page, rather than relying on a case where a clamp happens to hide the error.",
+        "error": null
+      },
+      {
+        "case_id": "13_rust_unicode_truncate",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 4,
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 1221,
+          "cache_read_input_tokens": 9808,
+          "cache_creation_input_tokens": 2583
+        },
+        "cost_usd": 0.001032,
+        "wall_time_s": 7.13,
+        "tests_passed": 5,
+        "tests_total": 5,
+        "tests_failing_before": 2,
+        "runner": "rust/cargo",
+        "changes": [
+          "src/lib.rs"
+        ],
+        "patch": "--- a/src/lib.rs\n+++ b/src/lib.rs\n@@ -5,7 +5,8 @@\n     if s.chars().count() <= max {\n         return s.to_string();\n     }\n-    format!(\"{}...\", &s[..max])\n+    let end = s.char_indices().nth(max).map(|(i, _)| i).unwrap_or(s.len());\n+    format!(\"{}...\", &s[..end])\n }\n \n /// Number of words, split on whitespace.\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`truncate` in `src/lib.rs` made two different measurements of the string. It checked the length in *characters* (`s.chars().count()`), but then cut the string using *bytes* (`&s[..max]`). In Rust, a string index counts bytes, and most ASCII letters take 1 byte, but Hebrew letters take 2 bytes and emoji take 4 bytes. So for the emoji input, `&s[..2]` landed in the middle of the first emoji, which is not a valid character boundary, and Rust panicked. For the Hebrew input, `&s[..4]` only covered 2 Hebrew letters, giving `\"\u05e9\u05dc...\"` instead of the 4 letters `\"\u05e9\u05dc\u05d5\u05dd...\"`.\n\n## Location\n`src/lib.rs:8`\n\n## Change\nReplaced the byte slice `&s[..max]` with a byte offset computed from the character count. `s.char_indices().nth(max)` finds the byte position where the `max`-th character starts, and that position is used as the slice end. If the string has fewer characters, it falls back to `s.len()`, but this is unreachable in practice because the early return already handles that case.\n\n## Why it is correct\nThe function now uses characters consistently. The early return counts characters, and the slice end is found by walking characters, so the cut always falls on a character boundary and includes exactly `max` characters. ASCII behavior is unchanged, since one byte equals one character there.\n\n## Tests\nFinal full run: passed=5, failed=0, errors=0, skipped=0 (exit code 0). This includes the unit tests in `src/lib.rs`, the integration tests in `tests/preview.rs`, and the doc-tests.\n\n## Lesson\nRust string indices and lengths are measured in bytes, but \"characters\" are what humans read, and the two differ for non-ASCII text. When you need the first N characters, iterate with `char_indices()` or `chars()` instead of slicing with `[..N]`, and make sure the length check and the slice use the same unit.",
+        "error": null
+      },
+      {
+        "case_id": "13_rust_unicode_truncate",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 4,
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 1005,
+          "cache_read_input_tokens": 9808,
+          "cache_creation_input_tokens": 2475
+        },
+        "cost_usd": 0.000911,
+        "wall_time_s": 6.03,
+        "tests_passed": 5,
+        "tests_total": 5,
+        "tests_failing_before": 2,
+        "runner": "rust/cargo",
+        "changes": [
+          "src/lib.rs"
+        ],
+        "patch": "--- a/src/lib.rs\n+++ b/src/lib.rs\n@@ -5,7 +5,8 @@\n     if s.chars().count() <= max {\n         return s.to_string();\n     }\n-    format!(\"{}...\", &s[..max])\n+    let head: String = s.chars().take(max).collect();\n+    format!(\"{}...\", head)\n }\n \n /// Number of words, split on whitespace.\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nThe `truncate` function was written to count characters in one place but cut the string by bytes in another. It checks `s.chars().count() <= max`, which counts characters, but then cuts with `&s[..max]`, which counts bytes. In Rust, `&s[..n]` takes the first `n` bytes and panics if that position falls inside a multi-byte character. Hebrew letters take 2 bytes each, so cutting at 4 bytes gave only two letters (\"\u05e9\u05dc\") instead of four. Emoji take 4 bytes each, so cutting at byte 2 landed inside the first emoji and caused a panic.\n\n## Location\n`src/lib.rs:8`\n\n## Change\nReplaced the byte slice `&s[..max]` with `s.chars().take(max).collect::<String>()`, so the function keeps the first `max` characters and then appends `...`.\n\n## Why it is correct\nThe function's doc comment says it keeps \"the first `max` characters\", and the length check already counts characters. The new code cuts on the same unit it measures, so the two agree. It also always lands on a valid character boundary, which removes the panic. The change is in the function itself, not in the tests, and it works for any input, not just the test strings.\n\n## Tests\nFinal full run: passed=5, failed=0, errors=0, skipped=0, exit_code=0.\n\n## Lesson\nWhen a length is measured in one unit (characters) and applied in another (bytes), the results can be wrong or can crash, especially with non-ASCII text. Use the same unit for measuring and for cutting, and be careful with byte-indexed slicing on strings.",
+        "error": null
+      },
+      {
+        "case_id": "13_rust_unicode_truncate",
+        "agent": "raw_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 4,
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 1176,
+          "cache_read_input_tokens": 9800,
+          "cache_creation_input_tokens": 2653
+        },
+        "cost_usd": 0.001019,
+        "wall_time_s": 6.87,
+        "tests_passed": 5,
+        "tests_total": 5,
+        "tests_failing_before": 2,
+        "runner": "rust/cargo",
+        "changes": [
+          "src/lib.rs"
+        ],
+        "patch": "--- a/src/lib.rs\n+++ b/src/lib.rs\n@@ -5,7 +5,8 @@\n     if s.chars().count() <= max {\n         return s.to_string();\n     }\n-    format!(\"{}...\", &s[..max])\n+    let cut: String = s.chars().take(max).collect();\n+    format!(\"{}...\", cut)\n }\n \n /// Number of words, split on whitespace.\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`truncate` is supposed to keep the first `max` *characters* of a string, and it correctly checks the length by counting characters. But when it actually cut the text, it used `&s[..max]`, which counts *bytes*. ASCII letters are 1 byte each, so this worked for English. Hebrew letters are 2 bytes each and emoji are 4 bytes each, so the byte cut landed in the wrong place. For the emoji it landed inside a character and Rust panicked. For the Hebrew it kept only 2 letters (\"\u05e9\u05dc\") instead of 4.\n\n## Location\n`src/lib.rs:8`\n\n## Change\nReplaced the byte-index slice with `s.chars().take(max).collect()`, which takes the first `max` characters, then appended `\"...\"` as before.\n\n## Why it is correct\nThe fix makes the cutting step use the same unit as the length check on line 5, so both now measure characters. Iterating over characters can never split a multi-byte character, so the panic is gone too. The function's behavior for ASCII input is unchanged. No test was edited and no special-casing was added.\n\n## Tests\nFinal full run: passed=5 failed=0 errors=0 skipped=0 (exit code 0). The doc-tests section ran with no failures.\n\n## Lesson\nIn Rust (and in most languages with Unicode text), `s.len()` and string slice indices count bytes, while `chars()` counts characters. Keep the unit you measure with the same unit you cut with, and use character-based iteration when a \"character\" limit is what's wanted.",
+        "error": null
+      }
+    ],
+    "sdk": [
+      {
+        "case_id": "01_off_by_one",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 991,
+          "cache_read_input_tokens": 12394,
+          "cache_creation_input_tokens": 4300
+        },
+        "cost_usd": 0.001158,
+        "wall_time_s": 7.92,
+        "tests_passed": 4,
+        "tests_total": 4,
+        "tests_failing_before": 2,
+        "runner": "python/pytest",
+        "changes": [
+          "gradebook/stats.py"
+        ],
+        "patch": "--- a/gradebook/stats.py\n+++ b/gradebook/stats.py\n@@ -6,7 +6,7 @@\n     if not grades:\n         raise ValueError(\"cannot average an empty list of grades\")\n     total = 0.0\n-    for i in range(1, len(grades)):\n+    for i in range(len(grades)):\n         total += grades[i]\n     return total / len(grades)\n \n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nThe `average` function adds up the grades with a loop, but the loop started at position 1 instead of position 0. In Python, list positions start at 0, so the first grade was never added to the total. The function still divided by the full count of grades, so every average came out too low. For `[72]` the total was 0, so the result was 0.0. For `[90, 80, 85]` the total was 165 instead of 255, so the result was 55.0 instead of 85.0.\n\n## Location\n`gradebook/stats.py:9`\n\n## Change\nChanged `for i in range(1, len(grades)):` to `for i in range(len(grades)):`. The loop now visits every index from 0 to the last one.\n\n## Why it is correct\nThe mean is the sum of all grades divided by how many there are. The divisor was already `len(grades)`, so the only broken part was the sum, and it now includes every grade. This fixes the general behavior for any list, not just the test inputs.\n\n## Tests\nLast full run: 4 passed, 0 failed, 0 errors, 0 skipped.\n\n## Lesson\nWhen you loop over a list by index, remember that the first index is 0 and the end is `len(list) - 1`, so `range(len(list))` covers everything. Starting at 1 quietly drops the first item, and the code still runs without any error.",
+        "error": null
+      },
+      {
+        "case_id": "01_off_by_one",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 929,
+          "cache_read_input_tokens": 14338,
+          "cache_creation_input_tokens": 2190
+        },
+        "cost_usd": 0.000883,
+        "wall_time_s": 7.02,
+        "tests_passed": 4,
+        "tests_total": 4,
+        "tests_failing_before": 2,
+        "runner": "python/pytest",
+        "changes": [
+          "gradebook/stats.py"
+        ],
+        "patch": "--- a/gradebook/stats.py\n+++ b/gradebook/stats.py\n@@ -6,7 +6,7 @@\n     if not grades:\n         raise ValueError(\"cannot average an empty list of grades\")\n     total = 0.0\n-    for i in range(1, len(grades)):\n+    for i in range(len(grades)):\n         total += grades[i]\n     return total / len(grades)\n \n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nThe `average` function adds up the grades with a loop, but the loop started at position 1 instead of position 0. In Python, list positions start at 0, so the first grade was never added to the total. With `[72]` nothing was added at all, giving 0. With `[90, 80, 85]` only 80 and 85 were added, giving 55 instead of 85. The final division still used the full list length, so every average came out too low.\n\n## Location\n`gradebook/stats.py:9`\n\n## Change\nChanged `for i in range(1, len(grades)):` to `for i in range(len(grades)):` so the loop visits every index from 0 to the last one.\n\n## Why it is correct\nThe average is the sum of all grades divided by how many there are. The loop now adds every grade once, and the divisor already counts every grade, so the two match. I did not special-case the test inputs or change the tests. The fix works for any list length.\n\n## Tests\nLast full run: 4 passed, 0 failed.\n\n## Lesson\nWhen you loop over a list by index, check where the range starts: Python indexes begin at 0, so `range(1, n)` silently skips the first item. Looping directly over the items (`for g in grades:`) avoids this kind of off-by-one error.",
+        "error": null
+      },
+      {
+        "case_id": "01_off_by_one",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 926,
+          "cache_read_input_tokens": 14068,
+          "cache_creation_input_tokens": 2055
+        },
+        "cost_usd": 0.000862,
+        "wall_time_s": 7.1,
+        "tests_passed": 4,
+        "tests_total": 4,
+        "tests_failing_before": 2,
+        "runner": "python/pytest",
+        "changes": [
+          "gradebook/stats.py"
+        ],
+        "patch": "--- a/gradebook/stats.py\n+++ b/gradebook/stats.py\n@@ -6,7 +6,7 @@\n     if not grades:\n         raise ValueError(\"cannot average an empty list of grades\")\n     total = 0.0\n-    for i in range(1, len(grades)):\n+    for i in range(len(grades)):\n         total += grades[i]\n     return total / len(grades)\n \n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nThe `average` function adds up the grades with a loop, but the loop starts at position 1 instead of position 0. In Python, list positions start at 0, so the first grade was never added to the total. The division still used the full count of grades, so every average came out too low. For `[72]` the total was 0, so the result was 0.0 instead of 72.0.\n\n## Location\n`gradebook/stats.py:9`\n\n## Change\nChanged `for i in range(1, len(grades)):` to `for i in range(len(grades)):`, so the loop visits every index from 0 through the last one.\n\n## Why it is correct\nThe average is the sum of all grades divided by how many there are. With the loop now covering every index, the sum includes every grade, and the division matches that count. `[90, 80, 85]` gives 255 / 3 = 85.0, and `[72]` gives 72.0. The fix is in the function itself, so it applies to all inputs and does not special-case the test values.\n\n## Tests\nFinal full run: passed=4, failed=0, errors=0, skipped=0 (exit code 0).\n\n## Lesson\nWhen you loop over a list by index, remember that indexes start at 0 and the range should usually begin there. Check the first and last elements by hand with a tiny example, such as a one-item list, to catch off-by-one mistakes.",
+        "error": null
+      },
+      {
+        "case_id": "02_inverted_condition",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 1056,
+          "cache_read_input_tokens": 16096,
+          "cache_creation_input_tokens": 3024
+        },
+        "cost_usd": 0.001068,
+        "wall_time_s": 7.47,
+        "tests_passed": 5,
+        "tests_total": 5,
+        "tests_failing_before": 4,
+        "runner": "python/pytest",
+        "changes": [
+          "shop/shipping.py"
+        ],
+        "patch": "--- a/shop/shipping.py\n+++ b/shop/shipping.py\n@@ -6,7 +6,7 @@\n \n def qualifies_for_free_shipping(order_total: float) -> bool:\n     \"\"\"Orders of at least the threshold ship for free.\"\"\"\n-    return order_total < FREE_SHIPPING_THRESHOLD\n+    return order_total >= FREE_SHIPPING_THRESHOLD\n \n \n def shipping_fee(order_total: float) -> float:\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nThe function that decides whether an order ships free had its comparison backwards. It returned `True` when the order total was *below* the $200 threshold, so small orders got free shipping and large orders were charged the $25 fee. The docstring says orders of at least the threshold ship free, so the check should have been \"greater than or equal to\". Because `shipping_fee` relies on this function, its results were inverted too.\n\n## Location\n`shop/shipping.py:9`\n\n## Change\nChanged `order_total < FREE_SHIPPING_THRESHOLD` to `order_total >= FREE_SHIPPING_THRESHOLD`.\n\n## Why it is correct\nThe fix matches the documented rule: an order of exactly $200 qualifies, and anything above it does too. Both `qualifies_for_free_shipping` and `shipping_fee` now give the right answers, and I did not touch the tests or the threshold constant. The fix corrects the logic itself rather than special-casing any test input.\n\n## Tests\nFinal full run: passed=5, failed=0, errors=0, skipped=0.\n\n## Lesson\nWhen a comparison controls a business rule, check the direction and the boundary against the written spec, including whether the edge value is inclusive. A single flipped operator can make every related result wrong, so read the docstring alongside the code.",
+        "error": null
+      },
+      {
+        "case_id": "02_inverted_condition",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 976,
+          "cache_read_input_tokens": 15996,
+          "cache_creation_input_tokens": 2909
+        },
+        "cost_usd": 0.001013,
+        "wall_time_s": 7.13,
+        "tests_passed": 5,
+        "tests_total": 5,
+        "tests_failing_before": 4,
+        "runner": "python/pytest",
+        "changes": [
+          "shop/shipping.py"
+        ],
+        "patch": "--- a/shop/shipping.py\n+++ b/shop/shipping.py\n@@ -6,7 +6,7 @@\n \n def qualifies_for_free_shipping(order_total: float) -> bool:\n     \"\"\"Orders of at least the threshold ship for free.\"\"\"\n-    return order_total < FREE_SHIPPING_THRESHOLD\n+    return order_total >= FREE_SHIPPING_THRESHOLD\n \n \n def shipping_fee(order_total: float) -> float:\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nThe function that decides whether an order ships free had its comparison backwards. The docstring says orders of *at least* the $200 threshold ship free, but the code checked `order_total < 200`, which is true only for small orders. So large orders were charged the $25 fee, and small orders got free shipping. The four failing tests were all symptoms of this one inverted check, because `shipping_fee` depends on it.\n\n## Location\n`shop/shipping.py:9`\n\n## Change\nChanged `return order_total < FREE_SHIPPING_THRESHOLD` to `return order_total >= FREE_SHIPPING_THRESHOLD`.\n\n## Why it is correct\nThe fix matches the documented rule. It also makes the threshold inclusive, so an order of exactly $200 ships free, which is what `test_threshold_is_inclusive` checks. `shipping_fee` now charges the fee only for orders below the threshold, so it is fixed by the same change and needed no edit. I did not touch the tests or the threshold constant.\n\n## Tests\nFinal full run: passed=5, failed=0, errors=0, skipped=0 (exit code 0).\n\n## Lesson\nWhen a rule is written in words, such as \"at least\" or \"at most\", check the operator against those words and test the boundary value. Off-by-one and inverted comparisons are easy to miss, and a boundary test like the $200 case catches them quickly.",
+        "error": null
+      },
+      {
+        "case_id": "02_inverted_condition",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 1027,
+          "cache_read_input_tokens": 16146,
+          "cache_creation_input_tokens": 2995
+        },
+        "cost_usd": 0.00105,
+        "wall_time_s": 7.59,
+        "tests_passed": 5,
+        "tests_total": 5,
+        "tests_failing_before": 4,
+        "runner": "python/pytest",
+        "changes": [
+          "shop/shipping.py"
+        ],
+        "patch": "--- a/shop/shipping.py\n+++ b/shop/shipping.py\n@@ -6,7 +6,7 @@\n \n def qualifies_for_free_shipping(order_total: float) -> bool:\n     \"\"\"Orders of at least the threshold ship for free.\"\"\"\n-    return order_total < FREE_SHIPPING_THRESHOLD\n+    return order_total >= FREE_SHIPPING_THRESHOLD\n \n \n def shipping_fee(order_total: float) -> float:\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nThe function that decides whether an order ships free had its comparison backwards. The docstring says orders *at least* the threshold ship free, but the code checked `order_total < 200`, which means \"below 200 ships free.\" So big orders were charged the $25 fee and small orders shipped free. Because `shipping_fee` depends on this function, it was wrong too.\n\n## Location\n`shop/shipping.py:9`\n\n## Change\nChanged `order_total < FREE_SHIPPING_THRESHOLD` to `order_total >= FREE_SHIPPING_THRESHOLD`.\n\n## Why it is correct\nThe fix makes the code match the documented rule. An order of exactly $200 now qualifies (the threshold is inclusive, as the tests require), and `shipping_fee` gets the right answer because it is built on this check. I did not touch the tests or the threshold and fee constants.\n\n## Tests\nLast full run: passed=5, failed=0, errors=0, skipped=0 (before the fix: passed=1, failed=4).\n\n## Lesson\nWhen a comparison decides a business rule, read the words that describe the rule (such as \"at least\" or \"under\") and check that the operator matches them exactly. Off-by-one and reversed-operator mistakes are easy to make and easy to miss, so write a test at the exact boundary value.",
+        "error": null
+      },
+      {
+        "case_id": "03_mutable_default",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 1355,
+          "cache_read_input_tokens": 14726,
+          "cache_creation_input_tokens": 2954
+        },
+        "cost_usd": 0.001195,
+        "wall_time_s": 8.62,
+        "tests_passed": 3,
+        "tests_total": 3,
+        "tests_failing_before": 2,
+        "runner": "python/pytest",
+        "changes": [
+          "notes/model.py"
+        ],
+        "patch": "--- a/notes/model.py\n+++ b/notes/model.py\n@@ -9,13 +9,13 @@\n     tags: list[str]\n \n \n-def make_note(title: str, tags: list[str] = []) -> Note:\n+def make_note(title: str, tags: list[str] | None = None) -> Note:\n     \"\"\"Create a note. Tags are normalized to lowercase and de-duplicated.\"\"\"\n-    for tag in list(tags):\n-        tags.remove(tag)\n-        if tag.lower() not in tags:\n-            tags.append(tag.lower())\n-    return Note(title=title, tags=tags)\n+    normalized: list[str] = []\n+    for tag in tags or []:\n+        if tag.lower() not in normalized:\n+            normalized.append(tag.lower())\n+    return Note(title=title, tags=normalized)\n \n \n def add_tag(note: Note, tag: str) -> None:\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`make_note` had two linked mistakes. First, its default argument `tags=[]` is created once when Python loads the function, so every note made without tags got the same list object. Adding a tag to one note therefore changed the default list that all later notes shared. Second, the loop edited the caller's list directly with `remove` and `append`, so passing in `[\"A\", \"B\"]` changed it to `[\"a\", \"b\"]`. Both problems come from reusing a list that belongs to someone else.\n\n## Location\n`notes/model.py:12`\n\n## Change\nI changed the signature to `tags: list[str] | None = None` and made the function build a new `normalized` list from the input, lowercasing each tag and skipping duplicates. The input list is only read, never written.\n\n## Why it is correct\nThe function no longer mutates its input, and each call gets its own fresh list, so no state leaks between notes. The output stays the same for the normal case: `[\"Food\", \"food\", \"Errand\"]` still becomes `[\"food\", \"errand\"]`. This fixes the shared state at its source rather than changing what the tests check.\n\n## Tests\nFinal full run: passed=3, failed=0, errors=0, skipped=0.\n\n## Lesson\nNever use a mutable default like `[]` in a function signature, and avoid modifying a list that a caller passed in. Build a new list instead, and default to `None` so each call creates its own.",
+        "error": null
+      },
+      {
+        "case_id": "03_mutable_default",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 1405,
+          "cache_read_input_tokens": 14726,
+          "cache_creation_input_tokens": 2949
+        },
+        "cost_usd": 0.001219,
+        "wall_time_s": 8.83,
+        "tests_passed": 3,
+        "tests_total": 3,
+        "tests_failing_before": 2,
+        "runner": "python/pytest",
+        "changes": [
+          "notes/model.py"
+        ],
+        "patch": "--- a/notes/model.py\n+++ b/notes/model.py\n@@ -9,13 +9,13 @@\n     tags: list[str]\n \n \n-def make_note(title: str, tags: list[str] = []) -> Note:\n+def make_note(title: str, tags: list[str] | None = None) -> Note:\n     \"\"\"Create a note. Tags are normalized to lowercase and de-duplicated.\"\"\"\n-    for tag in list(tags):\n-        tags.remove(tag)\n-        if tag.lower() not in tags:\n-            tags.append(tag.lower())\n-    return Note(title=title, tags=tags)\n+    normalized: list[str] = []\n+    for tag in tags or []:\n+        if tag.lower() not in normalized:\n+            normalized.append(tag.lower())\n+    return Note(title=title, tags=normalized)\n \n \n def add_tag(note: Note, tag: str) -> None:\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`make_note` in `notes/model.py` had two related bugs in how it handled the tags list.\n\n1. It used `tags: list[str] = []`. Python creates that default list once, when the function is defined, so every note made without tags shared the same list. When `add_tag` added \"urgent\" to the first note, the second note got it too.\n2. The loop modified the caller's list in place (`tags.remove(...)` and `tags.append(...)`). Passing in `[\"A\", \"B\"]` changed it to lowercase, which broke the promise that the caller's data is left alone.\n\n## Location\n`notes/model.py:12`\n\n## Change\nChanged the signature to `tags: list[str] | None = None`. The function now builds a new `normalized` list. It lowercases each tag, skips duplicates, and returns that new list. The caller's list is never touched.\n\n## Why it is correct\nEach call gets its own fresh list, so notes can no longer share state. The input list is only read, never written. Normalization (lowercase and de-duplicate) still happens, which the first test checks. The bug is fixed where it starts, in `make_note`, rather than by changing the tests or the `add_tag` function.\n\n## Tests\nFinal full run: 3 passed, 0 failed, 0 errors, 0 skipped (exit code 0).\n\n## Lesson\nNever use a mutable value such as a list or dict as a default argument; use `None` and create the list inside the function. Also avoid changing a list while looping over it or while it belongs to the caller. Build a new list and return it instead.",
+        "error": null
+      },
+      {
+        "case_id": "03_mutable_default",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 1430,
+          "cache_read_input_tokens": 14718,
+          "cache_creation_input_tokens": 2979
+        },
+        "cost_usd": 0.001236,
+        "wall_time_s": 8.58,
+        "tests_passed": 3,
+        "tests_total": 3,
+        "tests_failing_before": 2,
+        "runner": "python/pytest",
+        "changes": [
+          "notes/model.py"
+        ],
+        "patch": "--- a/notes/model.py\n+++ b/notes/model.py\n@@ -9,13 +9,13 @@\n     tags: list[str]\n \n \n-def make_note(title: str, tags: list[str] = []) -> Note:\n+def make_note(title: str, tags: list[str] | None = None) -> Note:\n     \"\"\"Create a note. Tags are normalized to lowercase and de-duplicated.\"\"\"\n-    for tag in list(tags):\n-        tags.remove(tag)\n-        if tag.lower() not in tags:\n-            tags.append(tag.lower())\n-    return Note(title=title, tags=tags)\n+    normalized: list[str] = []\n+    for tag in tags or []:\n+        if tag.lower() not in normalized:\n+            normalized.append(tag.lower())\n+    return Note(title=title, tags=normalized)\n \n \n def add_tag(note: Note, tag: str) -> None:\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`make_note` had two related bugs. First, it used a mutable default argument (`tags=[]`). Python creates that list once, when the function is defined, and every call that omits `tags` reuses the same list. So a tag added to one note (via `add_tag`) showed up on every later note. Second, the function edited the caller's list in place while looping over it, so the caller's list was changed. The removal-and-re-add logic also checked for duplicates against a half-modified list, which made the normalization unreliable.\n\n## Location\n`notes/model.py:12`\n\n## Change\nChanged the signature to `tags: list[str] | None = None`. The function now builds a fresh `normalized` list from `tags or []`, lowercasing each tag and skipping duplicates, and returns a note that uses that new list. The input list is never touched.\n\n## Why it is correct\nEach call now gets its own list, so notes cannot share state through the default. The caller's list is only read, never written. The normalization result is the same as before for the tested input (`[\"Food\", \"food\", \"Errand\"]` becomes `[\"food\", \"errand\"]`), and the root causes are removed rather than worked around for the specific test values.\n\n## Tests\nFinal full run: 3 passed, 0 failed, 0 errors, 0 skipped (exit code 0).\n\n## Lesson\nNever use a mutable object (list, dict, set) as a default argument in Python; use `None` and create a new object inside the function. Also avoid modifying a list that was passed in. Build and return a new list instead.",
+        "error": null
+      },
+      {
+        "case_id": "04_empty_input",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 4,
+        "usage": {
+          "input_tokens": 8,
+          "output_tokens": 875,
+          "cache_read_input_tokens": 10821,
+          "cache_creation_input_tokens": 2114
+        },
+        "cost_usd": 0.000811,
+        "wall_time_s": 6.39,
+        "tests_passed": 4,
+        "tests_total": 4,
+        "tests_failing_before": 1,
+        "runner": "python/pytest",
+        "changes": [
+          "metrics/series.py"
+        ],
+        "patch": "--- a/metrics/series.py\n+++ b/metrics/series.py\n@@ -5,6 +5,8 @@\n \n def mean(values: Sequence[float]) -> float:\n     \"\"\"Arithmetic mean. Raises ValueError(\"empty series\") for empty input.\"\"\"\n+    if not values:\n+        raise ValueError(\"empty series\")\n     return sum(values) / len(values)\n \n \n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nThe function `mean` in `metrics/series.py` divides the sum of the values by how many values there are. When the list is empty, the count is zero, so Python raises a `ZeroDivisionError`. The function's docstring says it should raise `ValueError(\"empty series\")` instead, and the test expects that. The sibling function `spread` already had the check, but `mean` did not.\n\n## Location\n`metrics/series.py:8`\n\n## Change\nAdded the same guard that `spread` uses: if `values` is empty, raise `ValueError(\"empty series\")` before dividing.\n\n## Why it is correct\nThe fix stops the division from ever running on an empty input. It makes `mean` match its documented contract and the behavior of `spread`. The non-empty path is unchanged, so `mean([2.0, 4.0, 6.0])` still returns `4.0`.\n\n## Tests\nLast full run: passed=4, failed=0, errors=0, skipped=0 (exit code 0).\n\n## Lesson\nWhen a function's docstring promises a specific error for bad input, check the input before doing the operation that would fail, and keep sibling functions consistent with each other.",
+        "error": null
+      },
+      {
+        "case_id": "04_empty_input",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 1151,
+          "cache_read_input_tokens": 14394,
+          "cache_creation_input_tokens": 2569
+        },
+        "cost_usd": 0.001042,
+        "wall_time_s": 7.61,
+        "tests_passed": 4,
+        "tests_total": 4,
+        "tests_failing_before": 1,
+        "runner": "python/pytest",
+        "changes": [
+          "metrics/series.py"
+        ],
+        "patch": "--- a/metrics/series.py\n+++ b/metrics/series.py\n@@ -5,6 +5,8 @@\n \n def mean(values: Sequence[float]) -> float:\n     \"\"\"Arithmetic mean. Raises ValueError(\"empty series\") for empty input.\"\"\"\n+    if not values:\n+        raise ValueError(\"empty series\")\n     return sum(values) / len(values)\n \n \n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nThe function `mean` computes an average by dividing the total by the number of items. When given an empty list, the count is zero, so Python raised a `ZeroDivisionError`. The test expects a `ValueError` with the message \"empty series\", which is what the function's docstring promises. The sibling function `spread` already checks for empty input and raises that error, but `mean` was missing the same check.\n\n## Location\n`metrics/series.py:8`\n\n## Change\nAdded an empty-input guard at the start of `mean`: `if not values: raise ValueError(\"empty series\")`. This mirrors the existing check in `spread`.\n\n## Why it is correct\nThe fix addresses the cause, not the symptom. The guard runs before the division, so the function never reaches the divide-by-zero, and it raises the documented error type and message. No test was changed and the input is not special-cased. Non-empty inputs take the same path as before.\n\n## Tests\nLast full run: passed=4, failed=0, errors=0, skipped=0 (exit code 0).\n\n## Lesson\nWhen a function's docstring promises a specific error for bad input, check that the validation actually runs before the operation that would fail. When you write similar functions, copy the guard pattern from their siblings so their behavior stays consistent.",
+        "error": null
+      },
+      {
+        "case_id": "04_empty_input",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 4,
+        "usage": {
+          "input_tokens": 8,
+          "output_tokens": 960,
+          "cache_read_input_tokens": 10821,
+          "cache_creation_input_tokens": 2143
+        },
+        "cost_usd": 0.000857,
+        "wall_time_s": 6.52,
+        "tests_passed": 4,
+        "tests_total": 4,
+        "tests_failing_before": 1,
+        "runner": "python/pytest",
+        "changes": [
+          "metrics/series.py"
+        ],
+        "patch": "--- a/metrics/series.py\n+++ b/metrics/series.py\n@@ -5,6 +5,8 @@\n \n def mean(values: Sequence[float]) -> float:\n     \"\"\"Arithmetic mean. Raises ValueError(\"empty series\") for empty input.\"\"\"\n+    if not values:\n+        raise ValueError(\"empty series\")\n     return sum(values) / len(values)\n \n \n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nThe function `mean` calculates the average by dividing the sum of the values by how many values there are. When given an empty list, there are zero values, so it tried to divide by zero and crashed with `ZeroDivisionError`. The function's docstring and the test both say it should raise a `ValueError(\"empty series\")` for empty input instead. The sibling function `spread` already does this check, but `mean` was missing it.\n\n## Location\n`metrics/series.py:8`\n\n## Change\nAdded a guard at the start of `mean` that raises `ValueError(\"empty series\")` when `values` is empty, matching the check already in `spread`.\n\n## Why it is correct\nThe guard runs before the division, so an empty input now produces the documented error and the division never sees zero. Non-empty inputs take the same path as before, so `mean` behaves identically for them. This fixes the general behavior for all empty inputs, not just the one value the test uses.\n\n## Tests\nLast full run: passed=4, failed=0, errors=0, skipped=0 (exit code 0).\n\n## Lesson\nWhen a function's docstring promises a specific error for bad input, check that the function actually enforces it, and handle edge cases like empty input before any operation that can fail on them. Where two related functions share a contract, keep their guards consistent so one does not silently behave differently from the other.",
+        "error": null
+      },
+      {
+        "case_id": "05_type_coercion",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 1207,
+          "cache_read_input_tokens": 17494,
+          "cache_creation_input_tokens": 3597
+        },
+        "cost_usd": 0.001229,
+        "wall_time_s": 8.25,
+        "tests_passed": 13,
+        "tests_total": 13,
+        "tests_failing_before": 6,
+        "runner": "python/pytest",
+        "changes": [
+          "settings/env.py"
+        ],
+        "patch": "--- a/settings/env.py\n+++ b/settings/env.py\n@@ -20,4 +20,9 @@\n     raw = config.get(key)\n     if raw is None:\n         return default\n-    return bool(raw)\n+    value = raw.strip().lower()\n+    if value in _TRUE:\n+        return True\n+    if value in _FALSE:\n+        return False\n+    raise ValueError(f\"invalid boolean for {key}: {raw!r}\")\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`get_bool` was supposed to convert text like `\"0\"`, `\"false\"`, or `\"yes\"` into a true/false value. Instead it returned `bool(raw)`. In Python, any non-empty string is \"truthy\", so every value became `True`, including `\"0\"`, `\"false\"`, `\"no\"`, and `\"maybe\"`. That is why the falsy-value tests got `True` back and the invalid-value test never saw an error.\n\n## Location\n`settings/env.py:14` (the `get_bool` function, final `return` at line 23)\n\n## Change\nI replaced `return bool(raw)` with logic that strips whitespace and lowercases the value, returns `True` if it is in `_TRUE`, returns `False` if it is in `_FALSE`, and otherwise raises `ValueError`. This matches the function's own docstring and the module's existing `_TRUE` and `_FALSE` sets, which were already defined but never used.\n\n## Why it is correct\nThe fix addresses the actual logic error instead of special-casing any test input. Every accepted spelling is now checked against the explicit sets, so `\" off\"` becomes `\"off\"` and returns `False`, and `\"maybe\"` raises `ValueError`. The missing-key path still returns the default, as before.\n\n## Tests\nFinal full run: 13 passed, 0 failed, 0 errors, 0 skipped (exit code 0).\n\n## Lesson\nWhen a function is documented to accept only specific values, check each input against those values explicitly. Relying on a language's general truthiness rules (here, `bool(string)`) silently accepts everything. Also, if a module defines helper constants like `_TRUE` and `_FALSE` and nothing uses them, that is a strong hint the implementation is incomplete.",
+        "error": null
+      },
+      {
+        "case_id": "05_type_coercion",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 1186,
+          "cache_read_input_tokens": 17486,
+          "cache_creation_input_tokens": 3595
+        },
+        "cost_usd": 0.001218,
+        "wall_time_s": 8.08,
+        "tests_passed": 13,
+        "tests_total": 13,
+        "tests_failing_before": 6,
+        "runner": "python/pytest",
+        "changes": [
+          "settings/env.py"
+        ],
+        "patch": "--- a/settings/env.py\n+++ b/settings/env.py\n@@ -20,4 +20,9 @@\n     raw = config.get(key)\n     if raw is None:\n         return default\n-    return bool(raw)\n+    value = raw.strip().lower()\n+    if value in _TRUE:\n+        return True\n+    if value in _FALSE:\n+        return False\n+    raise ValueError(f\"invalid boolean for {key!r}: {raw!r}\")\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`get_bool` converted its input with Python's `bool(raw)`. That returns `True` for any non-empty string, so `\"0\"`, `\"false\"`, `\"no\"`, `\" off\"` and even `\"maybe\"` all came back as `True`. The function was supposed to recognise a fixed set of true words and false words, and raise an error for anything else. The two sets that do this (`_TRUE` and `_FALSE`) were defined at the top of the file but never used. The truthy tests only passed by accident, because every truthy input happened to be a non-empty string.\n\n## Location\n`settings/env.py:14-23` (the return line is at `settings/env.py:23`)\n\n## Change\nReplaced `return bool(raw)` with code that strips whitespace and lowercases the value, returns `True` if it is in `_TRUE`, returns `False` if it is in `_FALSE`, and otherwise raises `ValueError`.\n\n## Why it is correct\nIt implements the behaviour stated in the docstring: case-insensitive, whitespace-tolerant matching of the known words, with an error for anything else. It fixes the cause rather than the symptom, since the falsy values now map to `False` and invalid input now raises. The test file was not changed.\n\n## Tests\nFinal full run: 13 passed, 0 failed, 0 errors, 0 skipped (exit code 0).\n\n## Lesson\nWhen a function's docstring or constants describe a specific set of accepted values, make sure the code actually uses them. Python's `bool()` on a string only checks whether it is empty, which is almost never what you want for parsing configuration. Tests that pass only for the \"easy\" inputs can hide this kind of bug, so check the rejecting cases too.",
+        "error": null
+      },
+      {
+        "case_id": "05_type_coercion",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 1171,
+          "cache_read_input_tokens": 17502,
+          "cache_creation_input_tokens": 3627
+        },
+        "cost_usd": 0.001215,
+        "wall_time_s": 8.0,
+        "tests_passed": 13,
+        "tests_total": 13,
+        "tests_failing_before": 6,
+        "runner": "python/pytest",
+        "changes": [
+          "settings/env.py"
+        ],
+        "patch": "--- a/settings/env.py\n+++ b/settings/env.py\n@@ -20,4 +20,9 @@\n     raw = config.get(key)\n     if raw is None:\n         return default\n-    return bool(raw)\n+    value = raw.strip().lower()\n+    if value in _TRUE:\n+        return True\n+    if value in _FALSE:\n+        return False\n+    raise ValueError(f\"invalid boolean for {key}: {raw!r}\")\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`get_bool` converted the setting to a boolean with Python's `bool(raw)`. In Python, any non-empty string is `True`, so `\"0\"`, `\"false\"`, `\"no\"`, and even `\"maybe\"` all came out as `True`. The function never looked at the words it was supposed to recognize. The file already had `_TRUE` and `_FALSE` sets, but nothing used them.\n\n## Location\n`settings/env.py:14` (the bug was at the `return bool(raw)` line, now `settings/env.py:23-28`)\n\n## Change\n`get_bool` now strips surrounding whitespace and lowercases the value. It returns `True` if the value is in `_TRUE`, `False` if it is in `_FALSE`, and raises `ValueError` for anything else. The missing-key path still returns `default`.\n\n## Why it is correct\nThe function's docstring defines the contract: accept 1/0, true/false, yes/no, on/off case-insensitively with surrounding whitespace ignored, and raise `ValueError` for anything else. The new code does exactly that, using the sets the author already wrote. It fixes the general parsing behavior rather than special-casing any test input.\n\n## Tests\nFinal full run: 13 passed, 0 failed, 0 errors, 0 skipped (exit code 0).\n\n## Lesson\nDon't convert a value with a generic truthiness check like `bool(x)` when the input is a string with a defined vocabulary. Compare against the expected values explicitly, and reject anything unexpected so that bad input fails loudly.",
+        "error": null
+      },
+      {
+        "case_id": "06_operator_precedence",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 1040,
+          "cache_read_input_tokens": 15011,
+          "cache_creation_input_tokens": 2468
+        },
+        "cost_usd": 0.00098,
+        "wall_time_s": 7.42,
+        "tests_passed": 4,
+        "tests_total": 4,
+        "tests_failing_before": 3,
+        "runner": "python/pytest",
+        "changes": [
+          "billing/tax.py"
+        ],
+        "patch": "--- a/billing/tax.py\n+++ b/billing/tax.py\n@@ -5,7 +5,7 @@\n \n def price_with_tax(price: float, rate: float = VAT_RATE) -> float:\n     \"\"\"Gross price including tax, rounded to cents.\"\"\"\n-    return round(price * 1 + rate, 2)\n+    return round(price * (1 + rate), 2)\n \n \n def tax_amount(price: float, rate: float = VAT_RATE) -> float:\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nThe function that computes a price including tax was doing the math in the wrong order. It wrote `price * 1 + rate`, which means \"multiply the price by 1, then add the tax rate as if it were a dollar amount.\" So a $100 item with 17% VAT came out as 100.17 instead of 117. The correct math is \"multiply the price by (1 + rate),\" so the tax is a percentage of the price.\n\n## Location\n`billing/tax.py:8`\n\n## Change\nChanged `return round(price * 1 + rate, 2)` to `return round(price * (1 + rate), 2)`. The parentheses make the addition happen before the multiplication.\n\n## Why it is correct\nThe three failing tests check that a price with tax equals the net price plus the tax amount (for example 100 \u2192 117 at 17%, and 50 \u2192 55 at 10%). With the fix, `price * (1 + rate)` gives 117.0, 55.0, and 93.6, which match. The `tax_amount` function was already correct, and the fix addresses the formula itself rather than the test expectations.\n\n## Tests\nFinal full run: passed=4, failed=0, errors=0, skipped=0.\n\n## Lesson\nWhen a formula has both `*` and `+`, put parentheses around the part that must happen first, and check the result with one simple number by hand (100 \u00d7 1.17 should be 117, not 100.17).",
+        "error": null
+      },
+      {
+        "case_id": "06_operator_precedence",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 7,
+        "usage": {
+          "input_tokens": 14,
+          "output_tokens": 1217,
+          "cache_read_input_tokens": 24915,
+          "cache_creation_input_tokens": 3041
+        },
+        "cost_usd": 0.001239,
+        "wall_time_s": 8.87,
+        "tests_passed": 4,
+        "tests_total": 4,
+        "tests_failing_before": 3,
+        "runner": "python/pytest",
+        "changes": [
+          "billing/tax.py"
+        ],
+        "patch": "--- a/billing/tax.py\n+++ b/billing/tax.py\n@@ -5,7 +5,7 @@\n \n def price_with_tax(price: float, rate: float = VAT_RATE) -> float:\n     \"\"\"Gross price including tax, rounded to cents.\"\"\"\n-    return round(price * 1 + rate, 2)\n+    return round(price * (1 + rate), 2)\n \n \n def tax_amount(price: float, rate: float = VAT_RATE) -> float:\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`price_with_tax` was supposed to compute the price plus tax, which means multiplying the price by `(1 + rate)`. Instead it computed `price * 1 + rate`. That adds the rate as a flat number of currency units, so a 17% rate turned 100 into 100.17 instead of 117. The other tests failed for the same reason, and `tax_amount` was correct, which is why its test passed.\n\n## Location\n`billing/tax.py:8`\n\n## Change\nChanged `return round(price * 1 + rate, 2)` to `return round(price * (1 + rate), 2)`. The parentheses make the rate a multiplier on the price.\n\n## Why it is correct\nThe fix addresses the formula itself, not the test values. With the corrected formula, 100 at 17% gives 117, 50 at 10% gives 55, and 80 gives 80 plus `tax_amount(80)` (93.6), which matches what the tests expect. It is also consistent with `tax_amount`, which computes `price * rate`.\n\n## Tests\nFinal full run: passed=4, failed=0, errors=0, skipped=0.\n\n## Lesson\nWhen a formula mixes multiplication and addition, use parentheses to show the intended order, such as `price * (1 + rate)`. Without them, an expression can look right while meaning something else. Checking the output against one hand-computed example (100 at 17% should be 117) would have caught this quickly.",
+        "error": null
+      },
+      {
+        "case_id": "06_operator_precedence",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 1092,
+          "cache_read_input_tokens": 14983,
+          "cache_creation_input_tokens": 2450
+        },
+        "cost_usd": 0.001003,
+        "wall_time_s": 7.71,
+        "tests_passed": 4,
+        "tests_total": 4,
+        "tests_failing_before": 3,
+        "runner": "python/pytest",
+        "changes": [
+          "billing/tax.py"
+        ],
+        "patch": "--- a/billing/tax.py\n+++ b/billing/tax.py\n@@ -5,7 +5,7 @@\n \n def price_with_tax(price: float, rate: float = VAT_RATE) -> float:\n     \"\"\"Gross price including tax, rounded to cents.\"\"\"\n-    return round(price * 1 + rate, 2)\n+    return round(price * (1 + rate), 2)\n \n \n def tax_amount(price: float, rate: float = VAT_RATE) -> float:\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nThe function that computes a price including tax was doing the wrong arithmetic. To add 17% tax to a price, you multiply the price by 1.17 (that is, `1 + rate`). The code instead computed `price * 1 + rate`, which means \"the price, plus 0.17 dollars.\" So a $100 item came out as $100.17 instead of $117.00. The other tests failed for the same reason.\n\n## Location\n`billing/tax.py:8`\n\n## Change\nChanged `return round(price * 1 + rate, 2)` to `return round(price * (1 + rate), 2)`, so the rate is applied as a percentage of the price.\n\n## Why it is correct\nThe function's docstring says the rate is a fraction (0.17 means 17%), so the gross price must be the price scaled by `(1 + rate)`. This matches the tests: 100 \u00d7 1.17 = 117, 50 \u00d7 1.1 = 55, and 80 + tax_amount(80) = 80 + 13.60 = 93.60, which equals 80 \u00d7 1.17. The fix changes only the formula and does not touch the tests or special-case any input.\n\n## Tests\nFinal full run: passed=4, failed=0, errors=0, skipped=0.\n\n## Lesson\nWhen a formula is built from a percentage, check the operator order: \"add 17%\" means multiply by `1 + 0.17`, not add 0.17 to the amount. Checking one simple case by hand (100 with 17% tax should be 117) catches this kind of error quickly.",
+        "error": null
+      },
+      {
+        "case_id": "07_stale_state",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 980,
+          "cache_read_input_tokens": 14333,
+          "cache_creation_input_tokens": 2163
+        },
+        "cost_usd": 0.000905,
+        "wall_time_s": 7.48,
+        "tests_passed": 3,
+        "tests_total": 3,
+        "tests_failing_before": 2,
+        "runner": "python/pytest",
+        "changes": [
+          "textstats/counter.py"
+        ],
+        "patch": "--- a/textstats/counter.py\n+++ b/textstats/counter.py\n@@ -2,7 +2,8 @@\n \n \n class WordCounter:\n-    counts: dict[str, int] = {}\n+    def __init__(self) -> None:\n+        self.counts: dict[str, int] = {}\n \n     def add_text(self, text: str) -> None:\n         for word in text.lower().split():\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`WordCounter` declared its word table `counts` as a class attribute, so there was only one dictionary shared by every `WordCounter` object. When one counter added words, every other counter saw them too. The tests created fresh counters and expected them to start empty, but they inherited the 8 words that earlier tests had added.\n\n## Location\n`textstats/counter.py:5`\n\n## Change\nReplaced the class-level `counts: dict[str, int] = {}` with an `__init__` method that sets `self.counts = {}`. Each new counter now gets its own dictionary.\n\n## Why it is correct\nThe dictionary now belongs to the instance, not the class, so counters are independent and a new one starts at zero. This fixes the sharing itself rather than changing what the tests check. The other methods (`add_text`, `most_common`, `total`) already read `self.counts`, so they needed no changes.\n\n## Tests\nFinal full run: passed=3, failed=0, errors=0, skipped=0.\n\n## Lesson\nAttributes that hold mutable values (lists, dicts, sets) should be created in `__init__`, not declared at class level, because class-level values are shared by all instances. Check whether a class attribute is meant to be shared or per-object before writing it.",
+        "error": null
+      },
+      {
+        "case_id": "07_stale_state",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 946,
+          "cache_read_input_tokens": 14315,
+          "cache_creation_input_tokens": 2147
+        },
+        "cost_usd": 0.000886,
+        "wall_time_s": 7.19,
+        "tests_passed": 3,
+        "tests_total": 3,
+        "tests_failing_before": 2,
+        "runner": "python/pytest",
+        "changes": [
+          "textstats/counter.py"
+        ],
+        "patch": "--- a/textstats/counter.py\n+++ b/textstats/counter.py\n@@ -2,7 +2,8 @@\n \n \n class WordCounter:\n-    counts: dict[str, int] = {}\n+    def __init__(self) -> None:\n+        self.counts: dict[str, int] = {}\n \n     def add_text(self, text: str) -> None:\n         for word in text.lower().split():\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`WordCounter` declared its `counts` dictionary at class level, so there was only one dictionary shared by every `WordCounter` object. When one counter added words, every other counter saw them too. A brand-new counter therefore already reported a total of 8, because another test had added 8 words to the shared dictionary first.\n\n## Location\n`textstats/counter.py:5`\n\n## Change\nRemoved the class-level `counts: dict[str, int] = {}` and added an `__init__` method that creates `self.counts = {}`. Each counter now gets its own dictionary when it is created.\n\n## Why it is correct\nThe dictionary now belongs to each instance, not the class. Counting in one counter no longer affects another, and a new counter starts empty. This fixes the cause of the shared state rather than changing what the tests check.\n\n## Tests\nFinal full run: 3 passed, 0 failed, 0 errors, 0 skipped.\n\n## Lesson\nMutable values (lists, dicts, sets) defined at class level are shared by all instances; set per-object state in `__init__` with `self.x = ...`. When a fresh object shows leftover data from another test, look for shared class-level state first.",
+        "error": null
+      },
+      {
+        "case_id": "07_stale_state",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 1037,
+          "cache_read_input_tokens": 14302,
+          "cache_creation_input_tokens": 2194
+        },
+        "cost_usd": 0.000937,
+        "wall_time_s": 7.49,
+        "tests_passed": 3,
+        "tests_total": 3,
+        "tests_failing_before": 2,
+        "runner": "python/pytest",
+        "changes": [
+          "textstats/counter.py"
+        ],
+        "patch": "--- a/textstats/counter.py\n+++ b/textstats/counter.py\n@@ -2,7 +2,8 @@\n \n \n class WordCounter:\n-    counts: dict[str, int] = {}\n+    def __init__(self) -> None:\n+        self.counts: dict[str, int] = {}\n \n     def add_text(self, text: str) -> None:\n         for word in text.lower().split():\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`WordCounter` stored its word counts in a class-level dictionary (`counts: dict[str, int] = {}` written directly in the class body). In Python, that one dictionary belongs to the class and is shared by every instance. So when one counter recorded words, every other counter saw them too. The tests were created with fresh counters that should start at zero, but they started with the 8 words already added by an earlier test.\n\n## Location\n`textstats/counter.py:5`\n\n## Change\nI replaced the class-level attribute with an `__init__` method that creates a new empty dictionary for each instance: `self.counts: dict[str, int] = {}`.\n\n## Why it is correct\nEach `WordCounter()` now gets its own `counts` dictionary when it is created, so one counter's data cannot leak into another. This fixes the shared state itself, not the test expectations. The tests were left unchanged.\n\n## Tests\nFinal full run: passed=3, failed=0, errors=0, skipped=0 (exit code 0).\n\n## Lesson\nAttributes that hold mutable data, such as lists or dictionaries, should be created in `__init__` and assigned to `self`. Declaring them in the class body makes them shared by all instances, which is a common source of bugs that only show up when several objects are used in the same run.",
+        "error": null
+      },
+      {
+        "case_id": "08_cross_file_week_start",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 6,
+        "usage": {
+          "input_tokens": 12,
+          "output_tokens": 1086,
+          "cache_read_input_tokens": 19464,
+          "cache_creation_input_tokens": 2862
+        },
+        "cost_usd": 0.001097,
+        "wall_time_s": 8.49,
+        "tests_passed": 4,
+        "tests_total": 4,
+        "tests_failing_before": 2,
+        "runner": "python/pytest",
+        "changes": [
+          "timesheet/dates.py"
+        ],
+        "patch": "--- a/timesheet/dates.py\n+++ b/timesheet/dates.py\n@@ -5,7 +5,7 @@\n \n def week_start(day: date) -> date:\n     \"\"\"The Monday of the ISO week containing `day`.\"\"\"\n-    return day - timedelta(days=day.weekday() + 1)\n+    return day - timedelta(days=day.weekday())\n \n \n def iso_week_label(day: date) -> str:\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nWeeks are supposed to start on Monday, and the helper that finds a week's start date was subtracting one day too many. Python counts weekdays from 0 for Monday through 6 for Sunday. So subtracting `day.weekday()` days already lands on Monday. The code subtracted `day.weekday() + 1` days, which moved every date back to the previous Sunday. Every total was then filed under the wrong week, and the report tests caught it.\n\n## Location\n`timesheet/dates.py:8`\n\n## Change\nRemoved the `+ 1` from the `timedelta` in `week_start`, so it now returns `day - timedelta(days=day.weekday())`.\n\n## Why it is correct\nThe function's docstring says it should return the Monday of the ISO week containing the date. With `weekday()` as the offset, a Monday maps to itself and any later day maps back to that Monday. The fix addresses the calculation itself rather than changing the expected values in the tests, and the code in `report.py` was already correct.\n\n## Tests\nFinal full run: passed=4, failed=0, errors=0, skipped=0 (exit code 0).\n\n## Lesson\nWhen you compute an offset, check what the library's convention is for the numbers involved. Python's `weekday()` starts at 0 for Monday, so adding 1 shifts the result by a day. Test an edge case such as a Monday input to confirm the offset.",
+        "error": null
+      },
+      {
+        "case_id": "08_cross_file_week_start",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 6,
+        "usage": {
+          "input_tokens": 12,
+          "output_tokens": 1133,
+          "cache_read_input_tokens": 19485,
+          "cache_creation_input_tokens": 2875
+        },
+        "cost_usd": 0.001122,
+        "wall_time_s": 8.76,
+        "tests_passed": 4,
+        "tests_total": 4,
+        "tests_failing_before": 2,
+        "runner": "python/pytest",
+        "changes": [
+          "timesheet/dates.py"
+        ],
+        "patch": "--- a/timesheet/dates.py\n+++ b/timesheet/dates.py\n@@ -5,7 +5,7 @@\n \n def week_start(day: date) -> date:\n     \"\"\"The Monday of the ISO week containing `day`.\"\"\"\n-    return day - timedelta(days=day.weekday() + 1)\n+    return day - timedelta(days=day.weekday())\n \n \n def iso_week_label(day: date) -> str:\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nWeeks are supposed to start on Monday, and the code finds the Monday of a date by subtracting the number of days since Monday. Python's `date.weekday()` returns 0 for Monday, 1 for Tuesday, and so on, through 6 for Sunday. The `week_start` function subtracted `weekday() + 1` days, which is one day too many. Every date therefore moved back to the previous Sunday, so weekly totals were keyed by Sunday instead of Monday, and the tests comparing against Monday keys failed.\n\n## Location\n`timesheet/dates.py:8`\n\n## Change\nChanged `return day - timedelta(days=day.weekday() + 1)` to `return day - timedelta(days=day.weekday())`.\n\n## Why it is correct\nThe function's docstring says it returns the Monday of the ISO week containing `day`. Subtracting exactly `weekday()` days from any date lands on that week's Monday (Monday minus 0, Tuesday minus 1, ..., Sunday minus 6). The fix corrects the calculation itself rather than changing the report code or the tests, and the other callers of `week_start` now get the documented behavior too.\n\n## Tests\nFinal full run: 4 passed, 0 failed.\n\n## Lesson\nWhen you use a library convention such as `weekday()`, check whether it starts counting at 0 or 1 and what the function's docstring promises. Test the boundary cases (here, a Monday and a Sunday) by hand to confirm the arithmetic.",
+        "error": null
+      },
+      {
+        "case_id": "08_cross_file_week_start",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 6,
+        "usage": {
+          "input_tokens": 12,
+          "output_tokens": 1194,
+          "cache_read_input_tokens": 19485,
+          "cache_creation_input_tokens": 2891
+        },
+        "cost_usd": 0.001154,
+        "wall_time_s": 8.8,
+        "tests_passed": 4,
+        "tests_total": 4,
+        "tests_failing_before": 2,
+        "runner": "python/pytest",
+        "changes": [
+          "timesheet/dates.py"
+        ],
+        "patch": "--- a/timesheet/dates.py\n+++ b/timesheet/dates.py\n@@ -5,7 +5,7 @@\n \n def week_start(day: date) -> date:\n     \"\"\"The Monday of the ISO week containing `day`.\"\"\"\n-    return day - timedelta(days=day.weekday() + 1)\n+    return day - timedelta(days=day.weekday())\n \n \n def iso_week_label(day: date) -> str:\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nThe code that works out which week a day belongs to was off by one day. In Python, `date.weekday()` returns 0 for Monday, 1 for Tuesday, and so on through 6 for Sunday. To step back to the Monday of the week, you subtract exactly `weekday()` days. The function subtracted `weekday() + 1` days instead, so every date landed on the Sunday before its Monday. That is why the report grouped hours under 2026-11-15 instead of 2026-11-16, and under 2026-11-22 instead of 2026-11-23. The report code itself was fine; it was trusting a wrong helper.\n\n## Location\n`timesheet/dates.py:8`\n\n## Change\nChanged `day - timedelta(days=day.weekday() + 1)` to `day - timedelta(days=day.weekday())`.\n\n## Why it is correct\nThe function's docstring says it should return the Monday of the ISO week containing the day, and the module header says weeks start on Monday. Subtracting `weekday()` days does exactly that: a Monday maps to itself, and a Sunday maps to the Monday six days earlier. The fix corrects the general calculation rather than special-casing any test date.\n\n## Tests\nFinal full run: passed=4, failed=0, errors=0, skipped=0 (exit code 0).\n\n## Lesson\nWhen you use a library's numbering scheme (here, `weekday()` starts at Monday = 0), check the convention against the docstring and do the arithmetic from that exact definition. A stray \"+ 1\" from a different convention, such as Sunday-first weeks, silently shifts every result by one day.",
+        "error": null
+      },
+      {
+        "case_id": "09_cross_file_bulk_tiers",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 1200,
+          "cache_read_input_tokens": 16855,
+          "cache_creation_input_tokens": 3600
+        },
+        "cost_usd": 0.00122,
+        "wall_time_s": 8.72,
+        "tests_passed": 6,
+        "tests_total": 6,
+        "tests_failing_before": 4,
+        "runner": "python/pytest",
+        "changes": [
+          "orders/pricing.py"
+        ],
+        "patch": "--- a/orders/pricing.py\n+++ b/orders/pricing.py\n@@ -7,7 +7,7 @@\n def bulk_discount_percent(quantity: int) -> int:\n     \"\"\"Discount for buying at least a tier's minimum quantity.\"\"\"\n     for minimum, percent in BULK_TIERS:\n-        if quantity > minimum:\n+        if quantity >= minimum:\n             return percent\n     return 0\n \n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nThe volume-discount code decides which tier applies with the wrong comparison. A tier says \"buy at least 10 and get 5% off,\" but the code only gave the discount when the quantity was *strictly greater than* 10. So buying exactly 10, 50, or 100 pens got no discount, or the discount for the tier below. That made the totals too high. For example, 10 pens at $2.00 should cost $19.00 (5% off), but the code charged $20.00.\n\n## Location\n`orders/pricing.py:10`\n\n## Change\nChanged `if quantity > minimum:` to `if quantity >= minimum:` in `bulk_discount_percent`.\n\n## Why it is correct\nThe tier minimums are inclusive: the module comment says \"at least a tier's minimum quantity,\" and the tests check the exact boundaries (10, 50, 100). With `>=`, a quantity equal to a minimum earns that tier's discount. The highest-tier-first ordering still ensures the largest applicable discount wins. The order-total test passes too, because its 10-unit line is now discounted correctly. No test or config file was changed.\n\n## Tests\nFinal full run: 6 passed, 0 failed.\n\n## Lesson\nWhen a rule says \"at least\" or \"at most,\" check whether the boundary value is included, and make the comparison operator match (`>=` vs `>`). Off-by-one errors at boundaries are easy to miss, so test the exact edge values as well as the values on either side of them.",
+        "error": null
+      },
+      {
+        "case_id": "09_cross_file_bulk_tiers",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 1103,
+          "cache_read_input_tokens": 16855,
+          "cache_creation_input_tokens": 3530
+        },
+        "cost_usd": 0.001162,
+        "wall_time_s": 7.79,
+        "tests_passed": 6,
+        "tests_total": 6,
+        "tests_failing_before": 4,
+        "runner": "python/pytest",
+        "changes": [
+          "orders/pricing.py"
+        ],
+        "patch": "--- a/orders/pricing.py\n+++ b/orders/pricing.py\n@@ -7,7 +7,7 @@\n def bulk_discount_percent(quantity: int) -> int:\n     \"\"\"Discount for buying at least a tier's minimum quantity.\"\"\"\n     for minimum, percent in BULK_TIERS:\n-        if quantity > minimum:\n+        if quantity >= minimum:\n             return percent\n     return 0\n \n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nThe bulk-discount lookup decides which discount tier applies by checking `quantity > minimum`. That means a customer who buys exactly 10, 50, or 100 items does not qualify for the discount, even though the function's docstring says the discount applies when buying \"at least\" the tier's minimum. Because of that, the boundary orders were priced at full price (for example, 10 pens at 2.0 came out to 20.0 instead of 19.0), and the order total was off by the same amount.\n\n## Location\n`orders/pricing.py:10`\n\n## Change\nChanged the comparison from `quantity > minimum` to `quantity >= minimum`.\n\n## Why it is correct\nThe comparison now matches the documented rule (\"at least a tier's minimum quantity\"). The tiers are checked highest first, so a quantity of 100 gets 15%, 50 to 99 gets 10%, and 10 to 49 gets 5%. The fix is in the pricing rule itself, not in the tests or in the `Line`/`Order` totals, which were computing correctly from the discount they were given.\n\n## Tests\nFinal full run: passed=6, failed=0, errors=0, skipped=0.\n\n## Lesson\nWhen a rule says \"at least\" or \"at most\", check that the comparison operator includes the boundary value (`>=` or `<=`), and test the exact boundary values, since off-by-one errors often show up only there.",
+        "error": null
+      },
+      {
+        "case_id": "09_cross_file_bulk_tiers",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 1074,
+          "cache_read_input_tokens": 16855,
+          "cache_creation_input_tokens": 3514
+        },
+        "cost_usd": 0.001146,
+        "wall_time_s": 8.02,
+        "tests_passed": 6,
+        "tests_total": 6,
+        "tests_failing_before": 4,
+        "runner": "python/pytest",
+        "changes": [
+          "orders/pricing.py"
+        ],
+        "patch": "--- a/orders/pricing.py\n+++ b/orders/pricing.py\n@@ -7,7 +7,7 @@\n def bulk_discount_percent(quantity: int) -> int:\n     \"\"\"Discount for buying at least a tier's minimum quantity.\"\"\"\n     for minimum, percent in BULK_TIERS:\n-        if quantity > minimum:\n+        if quantity >= minimum:\n             return percent\n     return 0\n \n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nThe bulk-discount code decides whether a customer qualifies for a tier by asking \"is the quantity *greater than* the tier's minimum?\" The tiers are meant to apply when the customer buys *at least* the minimum. So a customer who buys exactly 10, 50, or 100 pens got no discount, even though the docstring and the tests say the discount should start at those exact numbers. Because the discounts were missing, the line totals and the order total came out too high.\n\n## Location\n`orders/pricing.py:10`\n\n## Change\nChanged the comparison from `quantity > minimum` to `quantity >= minimum`.\n\n## Why it is correct\nThe fix is in the rule that picks the discount tier, which is the actual source of the wrong prices. Now a quantity equal to a tier's minimum gets that tier's discount, as the docstring (\"at least a tier's minimum quantity\") describes. The totals in `Line` and `Order` were already computed correctly from the discount, so they needed no changes. I did not touch the tests or the config files.\n\n## Tests\nFinal full run: 6 passed, 0 failed.\n\n## Lesson\nWhen a rule says \"at least\" or \"up to,\" check whether the boundary value itself is included, and make the operator (`>` vs `>=`) match the words. Boundary values are the most common place for off-by-one bugs, so test them directly.",
+        "error": null
+      },
+      {
+        "case_id": "10_rounding_trap",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 6,
+        "usage": {
+          "input_tokens": 12,
+          "output_tokens": 1672,
+          "cache_read_input_tokens": 22126,
+          "cache_creation_input_tokens": 3890
+        },
+        "cost_usd": 0.001545,
+        "wall_time_s": 10.5,
+        "tests_passed": 10,
+        "tests_total": 10,
+        "tests_failing_before": 5,
+        "runner": "python/pytest",
+        "changes": [
+          "invoicing/money.py"
+        ],
+        "patch": "--- a/invoicing/money.py\n+++ b/invoicing/money.py\n@@ -1,9 +1,11 @@\n \"\"\"Money helpers. Amounts are rounded half away from zero, to the cent.\"\"\"\n+\n+from decimal import ROUND_HALF_UP, Decimal\n \n \n def round_money(value: float) -> float:\n     \"\"\"Round to 2 decimals, halves away from zero (2.675 -> 2.68, -2.675 -> -2.68).\"\"\"\n-    return round(value, 2)\n+    return float(Decimal(str(value)).quantize(Decimal(\"0.01\"), rounding=ROUND_HALF_UP))\n \n \n def format_money(value: float) -> str:\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nThe function `round_money` was meant to round money amounts to the cent, with exact halves going away from zero (so 2.675 becomes 2.68). It used Python's built-in `round(value, 2)` instead. That function rounds exact halves to the nearest even digit, and it works on the binary float. A float cannot store 2.675 exactly; it is really about 2.67499999\u2026, so the result was 2.67. The same problem hit 1.005 and 0.125, and the negative case too.\n\n## Location\n`invoicing/money.py:6`\n\n## Change\n`round_money` now converts the value to a `Decimal` from its string form (`str(value)`) and quantizes it to two places with `ROUND_HALF_UP`, then converts back to `float`. I also added the `from decimal import ROUND_HALF_UP, Decimal` import at the top of the file. `format_money` uses `round_money`, so it was fixed by the same change.\n\n## Why it is correct\nWorking from the decimal text of the number means 2.675 is treated as exactly 2.675, not as its binary approximation. `ROUND_HALF_UP` in `Decimal` rounds ties away from zero, which matches the requirement for both positive and negative values. The function still returns a `float`, so its signature and callers (`invoice.py`) are unchanged. Non-tie cases such as 2.6749 \u2192 2.67 and -0.004 \u2192 -0.0 also come out correctly.\n\n## Tests\nFinal full run: 10 passed, 0 failed (previously 5 passed, 5 failed).\n\n## Lesson\nDo not use floating-point numbers and the built-in `round()` for money: `round()` uses banker's rounding, and binary floats can't represent many decimal values exactly. Use `Decimal` with an explicit rounding mode that matches the rule you need.",
+        "error": null
+      },
+      {
+        "case_id": "10_rounding_trap",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 6,
+        "usage": {
+          "input_tokens": 12,
+          "output_tokens": 1700,
+          "cache_read_input_tokens": 22174,
+          "cache_creation_input_tokens": 3930
+        },
+        "cost_usd": 0.001564,
+        "wall_time_s": 10.86,
+        "tests_passed": 10,
+        "tests_total": 10,
+        "tests_failing_before": 5,
+        "runner": "python/pytest",
+        "changes": [
+          "invoicing/money.py"
+        ],
+        "patch": "--- a/invoicing/money.py\n+++ b/invoicing/money.py\n@@ -1,9 +1,11 @@\n \"\"\"Money helpers. Amounts are rounded half away from zero, to the cent.\"\"\"\n+\n+from decimal import ROUND_HALF_UP, Decimal\n \n \n def round_money(value: float) -> float:\n     \"\"\"Round to 2 decimals, halves away from zero (2.675 -> 2.68, -2.675 -> -2.68).\"\"\"\n-    return round(value, 2)\n+    return float(Decimal(repr(value)).quantize(Decimal(\"0.01\"), rounding=ROUND_HALF_UP))\n \n \n def format_money(value: float) -> str:\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`round_money` used Python's built-in `round(value, 2)`. That function has two problems for money. First, a float like `2.675` is actually stored as about `2.67499999...` in binary, so it rounds down to `2.67`. Second, when a value is exactly halfway, `round` uses \"round half to even\" (banker's rounding), not the \"half away from zero\" the docstring and tests require. Those failures made the four half-cent cases fail, and `format_money(-2.675)` failed too because it depends on `round_money`.\n\n## Location\n`invoicing/money.py:6` (the `round_money` function)\n\n## Change\nReplaced `round(value, 2)` with a `Decimal` calculation: convert the value to its shortest decimal string with `repr`, quantize to `0.01` using `ROUND_HALF_UP`, and convert back to `float`. Added the `from decimal import ROUND_HALF_UP, Decimal` import.\n\n## Why it is correct\nWorking from the decimal string means `2.675` is treated as exactly `2.675`, not its binary approximation. `ROUND_HALF_UP` in the `decimal` module rounds halves away from zero for negative numbers too, so `-2.675` becomes `-2.68`. `format_money` gets the fix automatically because it calls `round_money`. No test was changed and no special case was added for the test values.\n\n## Tests\nFinal full run: 10 passed, 0 failed, 0 errors, 0 skipped (exit code 0).\n\n## Lesson\nDon't use binary floats for money, and check which rounding rule a built-in uses before relying on it: Python's `round` uses round-half-to-even on the float's exact binary value. For decimal money amounts, use `decimal.Decimal` with an explicit rounding mode that matches the spec.",
+        "error": null
+      },
+      {
+        "case_id": "10_rounding_trap",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 1738,
+          "cache_read_input_tokens": 16331,
+          "cache_creation_input_tokens": 3842
+        },
+        "cost_usd": 0.001514,
+        "wall_time_s": 10.21,
+        "tests_passed": 10,
+        "tests_total": 10,
+        "tests_failing_before": 5,
+        "runner": "python/pytest",
+        "changes": [
+          "invoicing/money.py"
+        ],
+        "patch": "--- a/invoicing/money.py\n+++ b/invoicing/money.py\n@@ -1,9 +1,11 @@\n \"\"\"Money helpers. Amounts are rounded half away from zero, to the cent.\"\"\"\n+\n+from decimal import ROUND_HALF_UP, Decimal\n \n \n def round_money(value: float) -> float:\n     \"\"\"Round to 2 decimals, halves away from zero (2.675 -> 2.68, -2.675 -> -2.68).\"\"\"\n-    return round(value, 2)\n+    return float(Decimal(repr(value)).quantize(Decimal(\"0.01\"), rounding=ROUND_HALF_UP))\n \n \n def format_money(value: float) -> str:\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`round_money` used Python's built-in `round(value, 2)`. That function rounds exact halves to the nearest even digit (banker's rounding), not away from zero as the docstring and tests require. It also works on the binary float, and `2.675` is actually stored as about `2.67499999...`, so it rounds down to `2.67`. The same bad rounding flowed into `format_money`, which calls `round_money`.\n\n## Location\n`invoicing/money.py:6`\n\n## Change\nReplaced `round(value, 2)` with a `Decimal` calculation. It converts the value's shortest decimal string (`repr(value)`) to a `Decimal`, quantizes it to 0.01 using `ROUND_HALF_UP` (ties go away from zero), and converts back to `float`. I also added the `decimal` import at the top of the file.\n\n## Why it is correct\n`repr(2.675)` is the text `\"2.675\"`, so the decimal value is exactly the tie the caller wrote, and `ROUND_HALF_UP` rounds it away from zero to `2.68`. The same logic handles `-2.675` to `-2.68`, `1.005` to `1.01`, and `0.125` to `0.13`. Values that are not ties still round to the nearest cent (`2.6749` gives `2.67`), and `10.0` stays `10.0`. `format_money` needed no change because it already calls `round_money`.\n\n## Tests\nFinal full run: 10 passed, 0 failed (exit code 0).\n\n## Lesson\nBuilt-in rounding functions often do something other than what the name or docstring suggests. Python's `round()` uses banker's rounding on binary floats, so check the rounding rule and the number representation against the spec, and use `Decimal` with an explicit rounding mode when money values need exact half-up behavior.",
+        "error": null
+      },
+      {
+        "case_id": "11_js_leaderboard_sort",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 981,
+          "cache_read_input_tokens": 15664,
+          "cache_creation_input_tokens": 3193
+        },
+        "cost_usd": 0.001047,
+        "wall_time_s": 6.84,
+        "tests_passed": 4,
+        "tests_total": 4,
+        "tests_failing_before": 1,
+        "runner": "javascript/node",
+        "changes": [
+          "src/leaderboard.js"
+        ],
+        "patch": "--- a/src/leaderboard.js\n+++ b/src/leaderboard.js\n@@ -7,7 +7,7 @@\n  * @returns {number[]}\n  */\n export function topScores(scores, n) {\n-  return [...scores].sort((a, b) => a - b).slice(0, n);\n+  return [...scores].sort((a, b) => b - a).slice(0, n);\n }\n \n /** Average score, or 0 for an empty list. */\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`topScores` is supposed to return the top `n` scores with the highest first. It made a copy of the list and sorted it with `(a, b) => a - b`, which sorts smallest to largest. Then `slice(0, n)` took the first `n` items, which are the smallest scores. For `[40, 95, 70, 88]` with `n = 2`, it returned `[40, 70]` instead of `[95, 88]`.\n\n## Location\n`src/leaderboard.js:10`\n\n## Change\nChanged the sort comparator from `(a, b) => a - b` to `(b, a) => ...`, written as `(a, b) => b - a`. This sorts largest to smallest, so `slice(0, n)` now takes the highest scores.\n\n## Why it is correct\nThe fix addresses the sort order itself, which is the actual cause. The copy `[...scores]` is still there, so the input array is not changed, and the \"does not modify the input\" test still passes. The average function was not involved and was not changed.\n\n## Tests\nFinal full run: 4 passed, 0 failed.\n\n## Lesson\nWhen you sort and then take a slice, check the direction of the comparator first: `a - b` gives ascending order and `b - a` gives descending order. Read the function's docstring and confirm the order you get matches what it promises.",
+        "error": null
+      },
+      {
+        "case_id": "11_js_leaderboard_sort",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 954,
+          "cache_read_input_tokens": 15678,
+          "cache_creation_input_tokens": 3205
+        },
+        "cost_usd": 0.001035,
+        "wall_time_s": 6.9,
+        "tests_passed": 4,
+        "tests_total": 4,
+        "tests_failing_before": 1,
+        "runner": "javascript/node",
+        "changes": [
+          "src/leaderboard.js"
+        ],
+        "patch": "--- a/src/leaderboard.js\n+++ b/src/leaderboard.js\n@@ -7,7 +7,7 @@\n  * @returns {number[]}\n  */\n export function topScores(scores, n) {\n-  return [...scores].sort((a, b) => a - b).slice(0, n);\n+  return [...scores].sort((a, b) => b - a).slice(0, n);\n }\n \n /** Average score, or 0 for an empty list. */\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`topScores` is supposed to return the highest scores in order, highest first. It sorted the list from smallest to largest, then kept the first `n` items. That gave the lowest scores, not the highest. The test passed `[40, 95, 70, 88]` with `n = 2` and got `[40, 70]` instead of `[95, 88]`.\n\n## Location\n`src/leaderboard.js:10`\n\n## Change\nChanged the sort comparator from `(a, b) => a - b` (ascending) to `(a, b) => b - a` (descending). The function still copies the array first with `[...scores]`, so the caller's array is not reordered.\n\n## Why it is correct\nThe sort now puts the largest values first, so `slice(0, n)` keeps the top `n` scores. This matches the docstring and the failing test. The fix changes the general sorting direction and does not special-case any input values.\n\n## Tests\nLast full run: passed=4, failed=0, errors=0, skipped=0, exit_code=0.\n\n## Lesson\nWhen you sort and then take a slice, check the sort direction first, because `a - b` sorts smallest first and `b - a` sorts largest first. Read the comparator against what the function is supposed to return.",
+        "error": null
+      },
+      {
+        "case_id": "11_js_leaderboard_sort",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 1006,
+          "cache_read_input_tokens": 15664,
+          "cache_creation_input_tokens": 3169
+        },
+        "cost_usd": 0.001057,
+        "wall_time_s": 7.22,
+        "tests_passed": 4,
+        "tests_total": 4,
+        "tests_failing_before": 1,
+        "runner": "javascript/node",
+        "changes": [
+          "src/leaderboard.js"
+        ],
+        "patch": "--- a/src/leaderboard.js\n+++ b/src/leaderboard.js\n@@ -7,7 +7,7 @@\n  * @returns {number[]}\n  */\n export function topScores(scores, n) {\n-  return [...scores].sort((a, b) => a - b).slice(0, n);\n+  return [...scores].sort((a, b) => b - a).slice(0, n);\n }\n \n /** Average score, or 0 for an empty list. */\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`topScores` is supposed to return the highest scores first. It sorts with the comparator `(a, b) => a - b`, which orders numbers from smallest to largest. Then `.slice(0, n)` keeps the first `n` items, which are therefore the smallest scores. For `[40, 95, 70, 88]` with `n = 2`, the sorted list is `[40, 70, 88, 95]`, so the function returned `[40, 70]` instead of `[95, 88]`.\n\n## Location\n`src/leaderboard.js:10`\n\n## Change\nI changed the comparator from `(a, b) => a - b` to `(b, a) => ...`, written as `(a, b) => b - a`. This sorts from largest to smallest, so the first `n` items are the highest scores.\n\n## Why it is correct\nThe sort order was the actual defect. The `slice` and the copy with `[...scores]` were already correct: the copy keeps the input unmodified, which the second test checks. Reversing the comparator fixes the ordering at its source, so the function now matches its docstring and the test. No test was edited, and the input is still not mutated.\n\n## Tests\nFinal full run: passed=4, failed=0, errors=0, skipped=0, exit_code=0.\n\n## Lesson\nWhen you sort and then take the first items, check the sort direction first, because `a - b` is ascending and `b - a` is descending. Confirm the order with a small example before you trust the result.",
+        "error": null
+      },
+      {
+        "case_id": "12_go_pagination",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 881,
+          "cache_read_input_tokens": 14513,
+          "cache_creation_input_tokens": 2467
+        },
+        "cost_usd": 0.000895,
+        "wall_time_s": 6.95,
+        "tests_passed": 4,
+        "tests_total": 4,
+        "tests_failing_before": 1,
+        "runner": "go/go-test",
+        "changes": [
+          "pager.go"
+        ],
+        "patch": "--- a/pager.go\n+++ b/pager.go\n@@ -10,7 +10,7 @@\n \tif start >= len(items) {\n \t\treturn nil\n \t}\n-\tend := start + size - 1\n+\tend := start + size\n \tif end > len(items) {\n \t\tend = len(items)\n \t}\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`Page` works out where a page ends by taking the start position and subtracting one from the page size. In Go, a slice's end index is exclusive, so the end must be `start + size`. With the extra `- 1`, every full page lost its last item. For example, page 1 with size 2 should return `a, b`, but the slice stopped at index 1 and returned only `a`.\n\n## Location\n`pager.go:13`\n\n## Change\nChanged `end := start + size - 1` to `end := start + size`.\n\n## Why it is correct\nThe start index is `(page-1)*size`, and a page holds exactly `size` items, so the exclusive end is `start + size`. The existing `if end > len(items)` clamp still handles the final partial page, which is why `TestLastPartialPage` already passed. The fix corrects the arithmetic itself and does not special-case any test input.\n\n## Tests\nFinal full run: passed=4, failed=0, errors=0, exit_code=0.\n\n## Lesson\nWhen slicing with `[start:end]`, remember that `end` is exclusive, so a range of `n` items runs from `start` to `start + n`, not `start + n - 1`. Check boundary arithmetic with a small concrete example, such as the first page, before trusting it.",
+        "error": null
+      },
+      {
+        "case_id": "12_go_pagination",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 874,
+          "cache_read_input_tokens": 14513,
+          "cache_creation_input_tokens": 2483
+        },
+        "cost_usd": 0.000894,
+        "wall_time_s": 7.02,
+        "tests_passed": 4,
+        "tests_total": 4,
+        "tests_failing_before": 1,
+        "runner": "go/go-test",
+        "changes": [
+          "pager.go"
+        ],
+        "patch": "--- a/pager.go\n+++ b/pager.go\n@@ -10,7 +10,7 @@\n \tif start >= len(items) {\n \t\treturn nil\n \t}\n-\tend := start + size - 1\n+\tend := start + size\n \tif end > len(items) {\n \t\tend = len(items)\n \t}\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`Page` is supposed to return `size` items starting at position `start`. The code computed the end of the slice as `start + size - 1`, which is one position too early. Go slices exclude the end index, so every page came back one item short. For page 1 with size 2, the code returned only `[a]` instead of `[a b]`.\n\n## Location\n`pager.go:13`\n\n## Change\nChanged `end := start + size - 1` to `end := start + size`.\n\n## Why it is correct\nA slice `items[start:end]` includes `start` and excludes `end`, so `end = start + size` gives exactly `size` items. The existing clamp `if end > len(items)` still trims the last partial page, so `TestLastPartialPage` passes too. The out-of-range check and `PageCount` were already correct and were not touched.\n\n## Tests\nFinal full run: passed=4, failed=0, errors=0, skipped=0 (exit code 0).\n\n## Lesson\nWhen you convert a \"count of items\" into a slice end index, remember that the end index is exclusive, so you add the count and do not subtract one. Check the boundaries by hand with a small example, such as \"page 1, size 2 should give two items.\"",
+        "error": null
+      },
+      {
+        "case_id": "12_go_pagination",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 1024,
+          "cache_read_input_tokens": 14509,
+          "cache_creation_input_tokens": 2604
+        },
+        "cost_usd": 0.000984,
+        "wall_time_s": 7.92,
+        "tests_passed": 4,
+        "tests_total": 4,
+        "tests_failing_before": 1,
+        "runner": "go/go-test",
+        "changes": [
+          "pager.go"
+        ],
+        "patch": "--- a/pager.go\n+++ b/pager.go\n@@ -10,7 +10,7 @@\n \tif start >= len(items) {\n \t\treturn nil\n \t}\n-\tend := start + size - 1\n+\tend := start + size\n \tif end > len(items) {\n \t\tend = len(items)\n \t}\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\n`Page` works out where each page ends incorrectly. A page starts at index `start` and should hold `size` items, so its end (exclusive) should be `start + size`. The code used `start + size - 1`, which is one short. For page 1 with size 2, it sliced `items[0:1]` and returned only `\"a\"`. The last-page test passed only by accident: its end is clamped to `len(items)`, which hid the error.\n\n## Location\n`pager.go:13`\n\n## Change\nChanged `end := start + size - 1` to `end := start + size`.\n\n## Why it is correct\nGo slice bounds are start-inclusive and end-exclusive, so `items[start:start+size]` is exactly the `size` items on the page. The existing clamp to `len(items)` still handles a short final page. This fixes the calculation itself, not the specific test values.\n\n## Tests\nFinal full run: passed=4, failed=0, errors=0, skipped=0, exit_code=0.\n\n## Lesson\nWhen slicing, remember that the end index is exclusive, so a count of N items starts at `i` and ends at `i + N`, not `i + N - 1`. Also check edge cases that pass by accident, like a clamp that hides an off-by-one in the normal case.",
+        "error": null
+      },
+      {
+        "case_id": "13_rust_unicode_truncate",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 4,
+        "usage": {
+          "input_tokens": 8,
+          "output_tokens": 977,
+          "cache_read_input_tokens": 11260,
+          "cache_creation_input_tokens": 2580
+        },
+        "cost_usd": 0.000924,
+        "wall_time_s": 7.56,
+        "tests_passed": 5,
+        "tests_total": 5,
+        "tests_failing_before": 2,
+        "runner": "rust/cargo",
+        "changes": [
+          "src/lib.rs"
+        ],
+        "patch": "--- a/src/lib.rs\n+++ b/src/lib.rs\n@@ -5,7 +5,8 @@\n     if s.chars().count() <= max {\n         return s.to_string();\n     }\n-    format!(\"{}...\", &s[..max])\n+    let head: String = s.chars().take(max).collect();\n+    format!(\"{}...\", head)\n }\n \n /// Number of words, split on whitespace.\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nThe `truncate` function was supposed to keep the first N *characters* of a string, but it counted *bytes*. In Rust, `&s[..n]` slices by byte position. Most letters are 1 byte, so ASCII text worked fine. But an emoji takes 4 bytes and a Hebrew letter takes 2 bytes. When the cut point fell in the middle of one of those characters, Rust panicked (emoji case). In the Hebrew case, the byte cut happened to land on a boundary, so it returned too few characters (\"\u05e9\u05dc...\" instead of \"\u05e9\u05dc\u05d5\u05dd...\").\n\n## Location\n`src/lib.rs:8`\n\n## Change\nReplaced the byte slice `&s[..max]` with `s.chars().take(max).collect::<String>()`, so the function takes `max` characters and then appends \"...\".\n\n## Why it is correct\nThe function's doc comment says it returns \"the first `max` characters.\" Taking characters directly matches that contract for any UTF-8 text, and it can never split a multi-byte character, so it does not panic. The short-text check above it already uses `chars().count()`, so the length logic is now consistent with the cut logic. No test was changed.\n\n## Tests\nFinal full run: passed=5 failed=0 errors=0 skipped=0 (exit code 0).\n\n## Lesson\nString length in bytes and length in characters are different things, especially with non-ASCII text. When a function's contract says \"characters,\" use character-based operations (like `chars()`) rather than byte indexes, and test with multi-byte input such as emoji or non-Latin scripts.",
+        "error": null
+      },
+      {
+        "case_id": "13_rust_unicode_truncate",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 5,
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 1171,
+          "cache_read_input_tokens": 15411,
+          "cache_creation_input_tokens": 3199
+        },
+        "cost_usd": 0.00114,
+        "wall_time_s": 8.44,
+        "tests_passed": 5,
+        "tests_total": 5,
+        "tests_failing_before": 2,
+        "runner": "rust/cargo",
+        "changes": [
+          "src/lib.rs"
+        ],
+        "patch": "--- a/src/lib.rs\n+++ b/src/lib.rs\n@@ -5,7 +5,8 @@\n     if s.chars().count() <= max {\n         return s.to_string();\n     }\n-    format!(\"{}...\", &s[..max])\n+    let head: String = s.chars().take(max).collect();\n+    format!(\"{}...\", head)\n }\n \n /// Number of words, split on whitespace.\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nThe `truncate` function decides whether to cut text by counting characters, but it cuts the text by bytes. In Rust, a string's `[..n]` slice uses byte positions, and a single character can take several bytes. Hebrew letters take 2 bytes each and emoji take 4. So `&s[..4]` on \"\u05e9\u05dc\u05d5\u05dd \u05e2\u05d5\u05dc\u05dd\" kept only two letters (\"\u05e9\u05dc\"), and `&s[..2]` on the emoji string landed in the middle of a 4-byte emoji, which makes Rust panic.\n\n## Location\n`src/lib.rs:8`\n\n## Change\nReplaced the byte slice `&s[..max]` with `s.chars().take(max).collect::<String>()`, which keeps the first `max` characters. The \"...\" suffix logic is unchanged.\n\n## Why it is correct\nThe function's contract (doc comment) says it keeps the first `max` characters. Taking characters directly matches that contract for any UTF-8 text, so it never splits a character and never panics. It fixes the cause rather than adjusting the test values or special-casing inputs.\n\n## Tests\nFinal full run: passed=5, failed=0, errors=0, exit_code=0 (all 5 tests in `tests/preview.rs` and the unit tests pass).\n\n## Lesson\nIndexes into a string in Rust (and many other languages) are byte positions, not character positions. When a function's specification says \"characters\", iterate over characters (for example with `chars()`) rather than slicing by a count, and test with non-ASCII text.",
+        "error": null
+      },
+      {
+        "case_id": "13_rust_unicode_truncate",
+        "agent": "sdk_agent",
+        "model": "claude-haiku-5-5",
+        "status": "resolved",
+        "iterations": 4,
+        "usage": {
+          "input_tokens": 8,
+          "output_tokens": 917,
+          "cache_read_input_tokens": 11260,
+          "cache_creation_input_tokens": 2559
+        },
+        "cost_usd": 0.000892,
+        "wall_time_s": 6.99,
+        "tests_passed": 5,
+        "tests_total": 5,
+        "tests_failing_before": 2,
+        "runner": "rust/cargo",
+        "changes": [
+          "src/lib.rs"
+        ],
+        "patch": "--- a/src/lib.rs\n+++ b/src/lib.rs\n@@ -5,7 +5,8 @@\n     if s.chars().count() <= max {\n         return s.to_string();\n     }\n-    format!(\"{}...\", &s[..max])\n+    let head: String = s.chars().take(max).collect();\n+    format!(\"{}...\", head)\n }\n \n /// Number of words, split on whitespace.\n",
+        "tampered_files": [],
+        "final_report": "## Result\nRESOLVED\n\n## Root cause\nThe `truncate` function was trying to cut text using byte positions, but its limit was meant to count characters. In Rust, a string's `[..n]` slice counts bytes. ASCII letters use one byte each, so this worked for English. An emoji like \ud83d\ude42 takes four bytes, and Hebrew letters take two each. Cutting at byte 2 landed in the middle of a character, which caused the emoji panic. For Hebrew, the cut kept fewer characters than requested.\n\n## Location\n`src/lib.rs:8`\n\n## Change\nReplaced `&s[..max]` with `s.chars().take(max).collect::<String>()`, which keeps the first `max` characters, then appends `...` as before.\n\n## Why it is correct\nThe function's contract, stated in its doc comment, is \"the first `max` characters of `s`\". Taking characters directly matches that contract for any UTF-8 text, and it never splits a character. The early return for short strings is unchanged, so the other tests still behave the same.\n\n## Tests\nFinal full run: passed=5 failed=0 errors=0 skipped=0 (exit code 0).\n\n## Lesson\nIn Rust (and similar languages), string lengths and indexes can refer to bytes or characters, and mixing them up gives wrong or crashing results on non-ASCII text. Check what unit a function's index or limit means, and test with multi-byte input such as emoji or non-Latin scripts.",
+        "error": null
+      }
+    ]
+  }
+}

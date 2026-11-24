@@ -187,17 +187,27 @@ including two cross-file bugs and one rounding trap where the obvious fix breaks
 other tests. Every case is validated by the test suite: it must fail as shipped,
 and its reference fix must make it pass.
 
-**Status: not yet run.** Running it calls the model and needs an API key:
+**Run on 2026-11-24** with `claude-haiku-5-5`, effort `medium`, 3 repeats per case
+(78 runs in all, total cost about $0.08). Full tables: `benchmark/results/results.md`.
+
+| Agent | Resolved | Mean iterations | Mean input tokens | Mean output tokens | Mean cost (USD) | Median time (s) | Max time (s) | Tampered | Budget hit | Errors |
+|---|---|---|---|---|---|---|---|---|---|---|
+| raw | 39/39 (100%) | 4.9 | 13,456 | 1,063 | 0.0009 | 6.4 | 9.1 | 0 | 0 | 0 |
+| sdk | 39/39 (100%) | 5.1 | 15,848 | 1,119 | 0.0011 | 7.7 | 10.9 | 0 | 0 | 0 |
+
+Both agents fixed every case in every repeat. Time is the agent's own solve time
+(model calls plus the tests it runs), not the grader's check. The raw agent finished
+every run within 10 seconds; the SDK agent did so in 36 of 39 runs, the three slower
+ones all on `10_rounding_trap` (10.2 to 10.9 s). The SDK agent is about 1.3 s slower
+and uses about 18% more input tokens per run, most likely from starting the bundled
+CLI and its larger system prompt.
+
+To rerun:
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
-bugfix benchmark --repeats 3
+BUGFIX_MODEL=claude-haiku-5-5 bugfix benchmark --repeats 3
 ```
-
-This writes `benchmark/results/results.md` with, per agent: resolve rate, mean
-iterations, tokens, cost and time; per-case outcomes; and any run that tampered
-with tests or hit a budget. Each case runs several times, because model runs are
-not deterministic. Paste the summary table here once it exists.
 
 ## Trade-offs
 
