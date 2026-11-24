@@ -138,7 +138,7 @@ def test_full_fix_conversation(tmp_path: Path) -> None:
     assert refused["is_error"] is True and "read-only" in refused["content"]
 
     events = [json.loads(line)["kind"] for line in trace.read_text().splitlines()]
-    assert events[0] == "run_start" and events[-1] == "run_end"
+    assert events[:2] == ["baseline", "run_start"] and events[-1] == "run_end"
     assert events.count("model_call") == 6 and events.count("tool_call") == 6
     assert "sk-test" not in trace.read_text()
 

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from pathlib import Path
 from types import TracebackType
@@ -18,10 +18,16 @@ from typing import Any, Self, TextIO
 
 
 class Tracer:
-    """Appends JSON events to a file. A tracer with `path=None` discards events."""
+    """Appends JSON events to a file and/or hands them to a listener (e.g. the CLI)."""
 
-    def __init__(self, path: Path | None, **context: Any) -> None:
+    def __init__(
+        self,
+        path: Path | None,
+        listener: Callable[[dict[str, Any]], None] | None = None,
+        **context: Any,
+    ) -> None:
         self._context = context
+        self._listener = listener
         self._file: TextIO | None = None
         if path is not None:
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -44,11 +50,14 @@ class Tracer:
             self._file = None
 
     def event(self, kind: str, **fields: Any) -> None:
-        if self._file is None:
+        if self._file is None and self._listener is None:
             return
         record = {"ts": time.time(), "kind": kind, **self._context, **fields}
-        self._file.write(json.dumps(record, default=str, ensure_ascii=False) + "\n")
-        self._file.flush()
+        if self._listener is not None:
+            self._listener(record)  # live progress display
+        if self._file is not None:
+            self._file.write(json.dumps(record, default=str, ensure_ascii=False) + "\n")
+            self._file.flush()
 
     @contextmanager
     def span(self, kind: str, **fields: Any) -> Iterator[dict[str, Any]]:

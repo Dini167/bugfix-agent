@@ -1,0 +1,11 @@
+id: 11_js_leaderboard_sort
+title: Leaderboard shows the lowest scores first
+difficulty: easy
+category: javascript / wrong comparator
+ground_truth:
+  description: topScores() sorts ascending (a - b) instead of descending, so the 'top' N are the lowest
+    scores.
+  fix:
+    file: src/leaderboard.js
+    old: sort((a, b) => a - b)
+    new: sort((a, b) => b - a)

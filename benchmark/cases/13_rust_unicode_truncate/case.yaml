@@ -1,0 +1,11 @@
+id: 13_rust_unicode_truncate
+title: Preview text crashes on Hebrew and emoji
+difficulty: hard
+category: rust / bytes vs characters
+ground_truth:
+  description: 'truncate() slices the string by byte index (&s[..max]), which panics in the middle of
+    a multi-byte character. Fix: count characters, e.g. s.chars().take(max).collect().'
+  fix:
+    file: src/lib.rs
+    old: format!("{}...", &s[..max])
+    new: format!("{}...", s.chars().take(max).collect::<String>())

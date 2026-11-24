@@ -66,6 +66,8 @@ class RawEngine:
                 # 📘 אחרי כל תשובה מוסיפים את הטוקנים לחשבון, ובודקים את תקרת הטוקנים ואת תקרת
                 # 📘 העלות.
                 budget.record_usage(turn.usage)
+                if turn.text:
+                    tracer.event("model_text", text=turn.text)
 
                 # 📘 המקרה הנפוץ: המודל ביקש להפעיל כלי אחד או יותר.
                 if turn.stop_reason is StopReason.TOOL_USE and turn.tool_calls:

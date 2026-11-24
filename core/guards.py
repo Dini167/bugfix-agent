@@ -23,24 +23,66 @@ from typing import Self
 from core.config import ModelPricing, Settings
 from core.types import Usage
 
-# Files that define what "correct" means. Editing any of them could make a
-# failing suite pass without fixing the bug, so they are off limits.
+# Files that define what "correct" means, or how tests are run. Editing any of
+# them could make a failing suite pass without fixing the bug, so they are off
+# limits. Covers every language with a built-in runner (see core.languages).
 _PROTECTED_NAMES = frozenset(
-    {"conftest.py", "pytest.ini", "pyproject.toml", "setup.cfg", "tox.ini"}
+    {
+        "bugfix.yaml",
+        # Python
+        "conftest.py",
+        "pytest.ini",
+        "pyproject.toml",
+        "setup.cfg",
+        "tox.ini",
+        "setup.py",
+        # JavaScript / TypeScript
+        "package.json",
+        "package-lock.json",
+        "yarn.lock",
+        "pnpm-lock.yaml",
+        # Go
+        "go.mod",
+        "go.sum",
+        # Rust
+        "Cargo.toml",
+        "Cargo.lock",
+        # Java
+        "pom.xml",
+        "build.gradle",
+        "build.gradle.kts",
+        "settings.gradle",
+        "settings.gradle.kts",
+    }
 )
-_PROTECTED_DIRS = frozenset({"tests", "test"})
+_PROTECTED_PREFIXES = ("test_",)
+_PROTECTED_SUFFIXES = (
+    "_test.py",
+    "_test.go",
+    "_test.rb",
+    "_spec.rb",
+    "Test.java",
+    "Tests.java",
+    "Test.kt",
+)
+_PROTECTED_INFIXES = (".test.", ".spec.")  # foo.test.ts, foo.spec.js, ...
+_PROTECTED_CONFIG_PREFIXES = ("jest.config.", "vitest.config.", "karma.conf.", ".mocharc")
+_PROTECTED_DIRS = frozenset({"tests", "test", "__tests__", "spec"})
 
 
-# 📘 אילו קבצים אסור לגעת בהם: טסטים וקבצי ההגדרות של pytest. שינוי שלהם היה מאפשר "לרמות".
+# 📘 אילו קבצים אסור לגעת בהם, בכל שפה: קבצי טסט וקבצים שקובעים איך הטסטים רצים. שינוי שלהם היה
+# 📘 מאפשר "לרמות".
 def is_protected(relative_path: str) -> bool:
     """Return True if the agent must not create, edit or delete this path."""
     path = PurePosixPath(relative_path)
     name = path.name
     if name in _PROTECTED_NAMES:
         return True
-    if name.startswith("test_") and name.endswith(".py"):
+    if name.startswith(_PROTECTED_PREFIXES) or name.startswith(_PROTECTED_CONFIG_PREFIXES):
         return True
-    if name.endswith("_test.py"):
+    if name.endswith(_PROTECTED_SUFFIXES):
+        return True
+    if any(infix in name for infix in _PROTECTED_INFIXES):
         return True
     return any(part in _PROTECTED_DIRS for part in path.parts[:-1])
 

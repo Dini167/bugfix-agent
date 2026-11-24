@@ -1,0 +1,10 @@
+id: 12_go_pagination
+title: The last page of results is always missing an item
+difficulty: medium
+category: go / off-by-one
+ground_truth:
+  description: Page() computes the end index as start+size-1, dropping the last element of every page.
+  fix:
+    file: pager.go
+    old: end := start + size - 1
+    new: end := start + size

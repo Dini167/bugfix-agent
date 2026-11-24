@@ -63,6 +63,7 @@ class TestOutcome:
     exit_code: int
     timed_out: bool
     output: str
+    runner: str = ""
 
     @property
     def total(self) -> int:
@@ -92,7 +93,17 @@ class RunStatus(StrEnum):
     UNRESOLVED = "unresolved"
     BUDGET_EXCEEDED = "budget_exceeded"
     TESTS_TAMPERED = "tests_tampered"
+    ALREADY_PASSING = "already_passing"
     ERROR = "error"
+
+
+@dataclass(frozen=True, slots=True)
+class FileChange:
+    """One file the agent changed, with its content before and after."""
+
+    path: str
+    before: str
+    after: str
 
 
 @dataclass(slots=True)
@@ -109,6 +120,10 @@ class RunResult:
     wall_time_s: float = 0.0
     tests_passed: int = 0
     tests_total: int = 0
+    tests_failing_before: int = 0
+    runner: str = ""
+    changes: list[FileChange] = field(default_factory=list)
+    patch: str = ""
     tampered_files: list[str] = field(default_factory=list)
     final_report: str = ""
     error: str | None = None
@@ -118,6 +133,8 @@ class RunResult:
         return self.status is RunStatus.RESOLVED
 
     def to_dict(self) -> dict[str, Any]:
+        """JSON-friendly summary. File contents are omitted; the patch carries the change."""
         data = asdict(self)
         data["status"] = self.status.value
+        data["changes"] = [c.path for c in self.changes]
         return data

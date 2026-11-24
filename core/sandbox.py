@@ -97,6 +97,51 @@ class Workspace:
         """Render a path inside the workspace as a POSIX path relative to the root."""
         return path.resolve().relative_to(self._root).as_posix()
 
+    @property
+    def cache_dir(self) -> Path:
+        """Per-run scratch space for toolchain caches, outside the repository."""
+        path = self._root.parent / "cache"
+        path.mkdir(exist_ok=True)
+        return path
+
+    # 📘 כל שפה צריכה מקום לקבצים זמניים (Go, Rust, npm). שמים אותם בתיקייה נפרדת, מחוץ לפרויקט,
+    # 📘 כדי שהאיגנט לא יראה אותם ושהם לא ישפיעו על הבדיקה.
+    def _environment(self) -> dict[str, str]:
+        """A minimal environment: toolchain paths and caches, and no secrets."""
+        cache = self.cache_dir
+        env = {
+            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+            "HOME": str(cache / "home"),
+            "LANG": "C.UTF-8",
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "PYTHONHASHSEED": "0",
+            # Go: keep build caches out of the repo and never download a toolchain.
+            "GOCACHE": str(cache / "go-build"),
+            "GOPATH": str(cache / "gopath"),
+            "GOTOOLCHAIN": "local",
+            "GOFLAGS": "-mod=mod",
+            # Rust: build output outside the repo; reuse the installed toolchain.
+            "CARGO_TARGET_DIR": str(cache / "cargo-target"),
+            # npm: cache outside the repo, no update checks or funding banners.
+            "npm_config_cache": str(cache / "npm"),
+            "npm_config_update_notifier": "false",
+            "npm_config_fund": "false",
+            "NO_COLOR": "1",
+        }
+        # Toolchain locations that live under the real home directory.
+        defaults = {
+            "RUSTUP_HOME": "~/.rustup",
+            "CARGO_HOME": "~/.cargo",
+            "JAVA_HOME": None,
+            "GOROOT": None,
+        }
+        for name, fallback in defaults.items():
+            value = os.environ.get(name) or (str(Path(fallback).expanduser()) if fallback else None)
+            if value and Path(value).exists():
+                env[name] = value
+        (cache / "home").mkdir(exist_ok=True)
+        return env
+
     def run(self, argv: list[str], timeout_s: float) -> CommandResult:
         """Run a command inside the workspace with a wall-clock timeout.
 
@@ -104,13 +149,7 @@ class Workspace:
         its own process group, so a timeout kills everything it spawned.
         """
         # 📘 התהליך שרץ מקבל סביבה מינימלית בלבד, בלי מפתח ה-API ובלי סודות אחרים.
-        env = {
-            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-            "HOME": str(self._root),
-            "LANG": "C.UTF-8",
-            "PYTHONDONTWRITEBYTECODE": "1",
-            "PYTHONHASHSEED": "0",
-        }
+        env = self._environment()
         proc = subprocess.Popen(
             argv,
             cwd=self._root,

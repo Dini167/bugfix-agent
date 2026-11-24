@@ -201,6 +201,7 @@ class SdkEngine:
         for block in message.content:
             if isinstance(block, TextBlock) and block.text.strip():
                 texts.append(block.text)
+                tracer.event("model_text", text=block.text)
         key = message.message_id or str(id(message))
         if key in seen:
             return

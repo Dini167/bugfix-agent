@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "bugfix-agent"
 version = "0.1.0"
-description = "An autonomous bug-fixing agent, built twice: on the raw Messages API and on the Claude Agent SDK."
+description = "An agent that finds and fixes the bug behind failing tests, in any language. Built twice: raw API and Claude Agent SDK."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -15,11 +15,14 @@ dependencies = [
     "claude-agent-sdk>=0.1",
 ]
 
+[project.scripts]
+bugfix = "cli.main:main"
+
 [project.optional-dependencies]
 dev = ["ruff>=0.6", "mypy>=1.10", "types-PyYAML"]
 
 [tool.setuptools.packages.find]
-include = ["core*", "raw_agent*", "sdk_agent*", "benchmark*"]
+include = ["core*", "raw_agent*", "sdk_agent*", "benchmark*", "cli*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

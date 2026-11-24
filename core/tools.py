@@ -14,9 +14,7 @@ from __future__ import annotations
 
 import difflib
 import re
-import sys
 import tempfile
-import xml.etree.ElementTree as ET
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -24,10 +22,27 @@ from typing import Any
 
 from core.config import Settings
 from core.guards import is_protected
+from core.languages import UnsupportedRepository, detect_runner, resolve_counts
 from core.sandbox import PathEscapeError, Workspace
 from core.types import TestOutcome, ToolResult
 
-_SKIP_DIRS = frozenset({"__pycache__", ".pytest_cache", ".mypy_cache", ".git", ".venv", "venv"})
+# Caches, dependencies and build output: never useful to the agent, often huge.
+_SKIP_DIRS = frozenset(
+    {
+        "__pycache__",
+        ".pytest_cache",
+        ".mypy_cache",
+        ".git",
+        ".venv",
+        "venv",
+        "node_modules",
+        "target",
+        "build",
+        "dist",
+        ".gradle",
+        ".next",
+    }
+)
 
 ToolHandler = Callable[..., ToolResult]
 
@@ -53,55 +68,37 @@ def truncate(text: str, limit: int) -> str:
     return f"{text[:head]}\n... [truncated {omitted:,} characters] ...\n{text[-tail:]}"
 
 
-# 📘 מריצים pytest וקוראים את התוצאות מקובץ XML, ולא מהטקסט שמודפס למסך, כי זה אמין יותר.
+# 📘 מריצים את הטסטים בכל שפה: מזהים אוטומטית איך להריץ אותם (core/languages.py), סופרים כמה עברו
+# 📘 וכמה נכשלו, ומחזירים תוצאה אחידה.
 def run_test_suite(
     workspace: Workspace, settings: Settings, target: str | None = None
 ) -> TestOutcome:
-    """Run pytest in the workspace and return structured counts plus output.
-
-    Counts come from a JUnit XML report written outside the workspace, which is
-    more reliable than parsing pytest's console summary.
-    """
-    with tempfile.TemporaryDirectory(prefix="bugfix-junit-") as tmp:
-        report = Path(tmp) / "report.xml"
-        argv = [
-            sys.executable,
-            "-m",
-            "pytest",
-            "-q",
-            "--no-header",
-            "-p",
-            "no:cacheprovider",
-            "--tb=short",
-            f"--junitxml={report}",
-        ]
-        if target:
-            argv.append(target)
-        result = workspace.run(argv, timeout_s=settings.test_timeout_s)
-        passed = failed = errors = skipped = 0
-        if report.exists():
-            root = ET.parse(report).getroot()
-            suites = [root] if root.tag == "testsuite" else list(root.iter("testsuite"))
-            for suite in suites:
-                tests = int(suite.get("tests", 0))
-                f = int(suite.get("failures", 0))
-                e = int(suite.get("errors", 0))
-                s = int(suite.get("skipped", 0))
-                failed += f
-                errors += e
-                skipped += s
-                passed += tests - f - e - s
+    """Run the repository's test suite with the detected runner and return counts plus output."""
+    try:
+        runner = detect_runner(workspace.root)
+    except UnsupportedRepository as exc:
+        return TestOutcome(0, 0, 1, 0, exit_code=-1, timed_out=False, output=str(exc))
+    with tempfile.TemporaryDirectory(prefix="bugfix-report-") as tmp:
+        report_dir = Path(tmp)
+        argv = runner.command(workspace.root, target, report_dir)
+        try:
+            result = workspace.run(argv, timeout_s=settings.test_timeout_s)
+        except FileNotFoundError:
+            message = f"Test runner {argv[0]!r} is not installed (needed for {runner.name})."
+            return TestOutcome(0, 0, 1, 0, exit_code=-1, timed_out=False, output=message)
+        counts = resolve_counts(runner, result, workspace.root, report_dir)
     output = (result.stdout + ("\n" + result.stderr if result.stderr.strip() else "")).strip()
     if result.timed_out:
         output += f"\n[test run timed out after {settings.test_timeout_s:.0f}s]"
     return TestOutcome(
-        passed=passed,
-        failed=failed,
-        errors=errors,
-        skipped=skipped,
+        passed=counts.passed,
+        failed=counts.failed,
+        errors=counts.errors,
+        skipped=counts.skipped,
         exit_code=result.exit_code,
         timed_out=result.timed_out,
         output=output,
+        runner=runner.name,
     )
 
 
@@ -132,12 +129,14 @@ class Toolbox:
             ToolSpec(
                 name="run_tests",
                 description=(
-                    "Run the repository's pytest suite (or one test file / node id) and "
-                    "return pass/fail counts with short tracebacks for failures. Run the "
-                    "full suite (no argument) to verify a fix."
+                    "Run the repository's test suite and return pass/fail counts with the "
+                    "runner's output for failures. The runner is detected automatically "
+                    "(pytest, npm/node, go test, cargo, Maven, Gradle, or bugfix.yaml). "
+                    "Optionally pass a target the runner understands (a test file, package "
+                    "or name filter). Run the full suite (no argument) to verify a fix."
                 ),
                 input_schema=_schema(
-                    {"path": {"type": "string", "description": "Optional test file or node id."}},
+                    {"path": {"type": "string", "description": "Optional runner-specific target."}},
                 ),
             ),
             ToolSpec(
@@ -181,8 +180,8 @@ class Toolbox:
                 description=(
                     "Replace exactly one occurrence of `old` with `new` in a file. `old` "
                     "must match the file exactly (including indentation) and be unique; "
-                    "include surrounding lines if needed. Test files and pytest config "
-                    "are read-only."
+                    "include surrounding lines if needed. Test files and test/build "
+                    "configuration are read-only."
                 ),
                 input_schema=_schema(
                     {
@@ -222,6 +221,8 @@ class Toolbox:
 
     def run_tests(self, path: str | None = None) -> ToolResult:
         if path:
+            if path.startswith("-"):
+                return ToolResult("The target must be a path or name, not a flag.", is_error=True)
             self._ws.resolve(path.split("::", 1)[0])  # containment check only
         outcome = run_test_suite(self._ws, self._settings, target=path)
         summary = (
@@ -229,7 +230,7 @@ class Toolbox:
             f"skipped={outcome.skipped} exit_code={outcome.exit_code}"
         )
         status = "ALL TESTS PASSED" if outcome.all_passed else "TESTS FAILING"
-        return ToolResult(f"{status}\n{summary}\n\n{outcome.output}")
+        return ToolResult(f"{status} ({outcome.runner})\n{summary}\n\n{outcome.output}")
 
     def list_files(self, path: str = ".") -> ToolResult:
         base = self._ws.resolve(path)
