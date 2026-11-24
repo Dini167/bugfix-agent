@@ -128,6 +128,23 @@ retried; and a 429 caused by the account's spend cap is not retried, because
 waiting cannot fix it. With the SDK, all of this happens inside the CLI, and we
 handle only `ClaudeSDKError` and the result's `subtype`.
 
+### Where the `anthropic` client library fits
+
+There is a middle layer between the two that this project deliberately does not
+build: the official `anthropic` Python client. It would replace most of
+`raw_agent/client.py` (HTTP, auth headers, typed errors, retries) but not the
+loop, the wire format of tool results, or the stop-reason handling. So the three
+options sit on one line:
+
+| Layer | You write | It provides |
+|---|---|---|
+| Raw HTTP (`raw_agent`) | Transport, retries, wire format, loop | Nothing beyond `httpx` |
+| `anthropic` client | Wire format, loop | Transport, typed errors, retries |
+| Claude Agent SDK (`sdk_agent`) | Tool handlers and message handling | Everything above, plus the loop, caching and context management |
+
+The raw agent sits at the bottom on purpose: it shows every piece the other two
+hide.
+
 ## Results on the benchmark
 
 The benchmark has 13 cases in Python, JavaScript, Go and Rust, from easy to hard,
